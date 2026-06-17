@@ -320,8 +320,10 @@ jobs:
             rsvg-convert "$base_svg" -o "$scratch/base.png"
             rsvg-convert "$current_svg" -o "$scratch/current.png"
 
-            read -r base_w base_h < <(image_size "$scratch/base.png")
-            read -r current_w current_h < <(image_size "$scratch/current.png")
+            base_dims="$(image_size "$scratch/base.png")"
+            current_dims="$(image_size "$scratch/current.png")"
+            read -r base_w base_h <<< "$base_dims"
+            read -r current_w current_h <<< "$current_dims"
             max_w="$base_w"
             max_h="$base_h"
             if [ "$current_w" -gt "$max_w" ]; then max_w="$current_w"; fi
@@ -652,7 +654,7 @@ jobs:
             echo "| ERC and DRC | \`${CHECKS_RESULT}\` |"
             echo "| Documentation and fabrication outputs | \`${OUTPUTS_RESULT}\` |"
             echo "| 3D model generation | \`${MODELS_RESULT}\` |"
-            echo "| Visual diff generation | \`${VISUAL_DIFF_RESULT}\` |"
+            echo "| Visual diff generation | \`${VISUAL_DIFF_RESULT:-unknown}\` |"
             echo
             echo "Run: [${GITHUB_RUN_ID}](${run_url})"
             if [ -n "${PAGES_URL:-}" ]; then
