@@ -5,6 +5,7 @@ on:
     types: [opened, reopened, synchronize]
     paths:
       - "hardware/**"
+      - ".github/hardware/projects.json"
       - ".github/workflows/hardware-pr-diff.yml"
 
 permissions:
@@ -30,8 +31,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          projects="$(jq -c '.' hardware/projects.json)"
-          matrix="$(jq -c '{include: .}' hardware/projects.json)"
+          projects="$(jq -c '.' .github/hardware/projects.json)"
+          matrix="$(jq -c '{include: .}' .github/hardware/projects.json)"
           echo "projects=${projects}" >> "$GITHUB_OUTPUT"
           echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
 

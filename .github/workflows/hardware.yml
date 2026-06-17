@@ -5,14 +5,12 @@ on:
     paths:
       - "hardware/**"
       - ".github/workflows/hardware.yml"
-      - "tools/hardware-site/**"
-      - "tools/hardware-3d/**"
+      - ".github/hardware/**"
   pull_request:
     paths:
       - "hardware/**"
       - ".github/workflows/hardware.yml"
-      - "tools/hardware-site/**"
-      - "tools/hardware-3d/**"
+      - ".github/hardware/**"
   workflow_dispatch:
 
 permissions:
@@ -35,8 +33,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          projects="$(jq -c '.' hardware/projects.json)"
-          matrix="$(jq -c '{include: .}' hardware/projects.json)"
+          projects="$(jq -c '.' .github/hardware/projects.json)"
+          matrix="$(jq -c '{include: .}' .github/hardware/projects.json)"
           echo "projects=${projects}" >> "$GITHUB_OUTPUT"
           echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
 
@@ -187,7 +185,7 @@ jobs:
           model_dir="hardware-3d-artifacts/${{ matrix.slug }}/model"
           mkdir -p "$model_dir"
 
-          xvfb-run -a blender --background --python tools/hardware-3d/convert_vrml_to_glb.py -- \
+          xvfb-run -a blender --background --python .github/hardware/3d/convert_vrml_to_glb.py -- \
             "${{ steps.find-vrml.outputs.path }}" \
             "$model_dir/board.glb" \
             "$model_dir/board-preview.png"
@@ -256,7 +254,7 @@ jobs:
           set -euo pipefail
 
           mkdir -p site/projects
-          cp tools/hardware-site/style.css site/style.css
+          cp .github/hardware/site/style.css site/style.css
           cat > site/index.html <<EOF
           <!doctype html>
           <html lang="en">
@@ -318,8 +316,8 @@ jobs:
 
             project_site="site/projects/$slug"
             mkdir -p "$project_site/reports" "$project_site/outputs" "$project_site/kicad" "$project_site/model"
-            cp tools/hardware-site/index.html "$project_site/index.html"
-            cp tools/hardware-site/style.css "$project_site/style.css"
+            cp .github/hardware/site/index.html "$project_site/index.html"
+            cp .github/hardware/site/style.css "$project_site/style.css"
             escape_sed() {
               printf '%s' "$1" | sed 's/[\/&]/\\&/g'
             }
