@@ -263,37 +263,35 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Device:Battery"
+		(symbol "Device:LED"
 			(pin_numbers
 				(hide yes)
 			)
 			(pin_names
-				(offset 0)
+				(offset 1.016)
 				(hide yes)
 			)
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
-			(property "Reference" "BT"
-				(at 2.54 2.54 0)
+			(property "Reference" "D"
+				(at 0 2.54 0)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
-					(justify left)
 				)
 			)
-			(property "Value" "Battery"
-				(at 2.54 0 0)
+			(property "Value" "LED"
+				(at 0 -2.54 0)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
-					(justify left)
 				)
 			)
 			(property "Footprint" ""
-				(at 0 1.524 90)
+				(at 0 0 0)
 				(effects
 					(font
 						(size 1.27 1.27)
@@ -302,15 +300,6 @@
 				)
 			)
 			(property "Datasheet" "~"
-				(at 0 1.524 90)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Description" "Multiple-cell battery"
 				(at 0 0 0)
 				(effects
 					(font
@@ -319,7 +308,7 @@
 					(hide yes)
 				)
 			)
-			(property "ki_keywords" "batt voltage-source cell"
+			(property "Description" "Light emitting diode"
 				(at 0 0 0)
 				(effects
 					(font
@@ -328,54 +317,37 @@
 					(hide yes)
 				)
 			)
-			(symbol "Battery_0_1"
-				(rectangle
-					(start -2.286 1.778)
-					(end 2.286 1.524)
-					(stroke
-						(width 0)
-						(type default)
+			(property "Sim.Pins" "1=K 2=A"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
 					)
-					(fill
-						(type outline)
-					)
+					(hide yes)
 				)
-				(rectangle
-					(start -2.286 -1.27)
-					(end 2.286 -1.524)
-					(stroke
-						(width 0)
-						(type default)
+			)
+			(property "ki_keywords" "LED diode"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
 					)
-					(fill
-						(type outline)
-					)
+					(hide yes)
 				)
-				(rectangle
-					(start -1.524 1.016)
-					(end 1.524 0.508)
-					(stroke
-						(width 0)
-						(type default)
+			)
+			(property "ki_fp_filters" "LED* LED_SMD:* LED_THT:*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
 					)
-					(fill
-						(type outline)
-					)
+					(hide yes)
 				)
-				(rectangle
-					(start -1.524 -2.032)
-					(end 1.524 -2.54)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type outline)
-					)
-				)
+			)
+			(symbol "LED_0_1"
 				(polyline
 					(pts
-						(xy 0 1.778) (xy 0 2.54)
+						(xy -3.048 -0.762) (xy -4.572 -2.286) (xy -3.81 -2.286) (xy -4.572 -2.286) (xy -4.572 -1.524)
 					)
 					(stroke
 						(width 0)
@@ -387,7 +359,7 @@
 				)
 				(polyline
 					(pts
-						(xy 0 0) (xy 0 0.254)
+						(xy -1.778 -0.762) (xy -3.302 -2.286) (xy -2.54 -2.286) (xy -3.302 -2.286) (xy -3.302 -1.524)
 					)
 					(stroke
 						(width 0)
@@ -399,7 +371,7 @@
 				)
 				(polyline
 					(pts
-						(xy 0 -0.508) (xy 0 -0.254)
+						(xy -1.27 0) (xy 1.27 0)
 					)
 					(stroke
 						(width 0)
@@ -411,19 +383,7 @@
 				)
 				(polyline
 					(pts
-						(xy 0 -1.016) (xy 0 -0.762)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0.762 3.048) (xy 1.778 3.048)
+						(xy -1.27 -1.27) (xy -1.27 1.27)
 					)
 					(stroke
 						(width 0.254)
@@ -435,7 +395,7 @@
 				)
 				(polyline
 					(pts
-						(xy 1.27 3.556) (xy 1.27 2.54)
+						(xy 1.27 -1.27) (xy 1.27 1.27) (xy -1.27 0) (xy 1.27 -1.27)
 					)
 					(stroke
 						(width 0.254)
@@ -446,11 +406,11 @@
 					)
 				)
 			)
-			(symbol "Battery_1_1"
+			(symbol "LED_1_1"
 				(pin passive line
-					(at 0 5.08 270)
+					(at -3.81 0 0)
 					(length 2.54)
-					(name "+"
+					(name "K"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -466,9 +426,9 @@
 					)
 				)
 				(pin passive line
-					(at 0 -5.08 90)
+					(at 3.81 0 180)
 					(length 2.54)
-					(name "-"
+					(name "A"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -487,6 +447,22 @@
 			(embedded_fonts no)
 		)
 	)
+	(no_connect
+		(at 102.87 76.2)
+		(uuid "0bba183e-20a5-4df7-b2a9-90b327f5e5cc")
+	)
+	(no_connect
+		(at 115.57 78.74)
+		(uuid "34762522-9f08-4d4c-8135-714a20d43458")
+	)
+	(no_connect
+		(at 115.57 76.2)
+		(uuid "5dd23dda-cba5-4903-a2cc-d783402e40f1")
+	)
+	(no_connect
+		(at 102.87 78.74)
+		(uuid "d198d1ee-3d4a-4834-8779-cb2a4d45dd25")
+	)
 	(wire
 		(pts
 			(xy 104.14 62.23) (xy 104.14 73.66)
@@ -496,6 +472,16 @@
 			(type default)
 		)
 		(uuid "0a1ea9a6-8770-4a3e-8172-05b9ecb0c91e")
+	)
+	(wire
+		(pts
+			(xy 111.76 62.23) (xy 114.3 62.23)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "54ed0a84-57b1-4b8c-814c-2a6e53e4c898")
 	)
 	(wire
 		(pts
@@ -526,90 +512,6 @@
 			(type default)
 		)
 		(uuid "a19c85ec-bbec-44f9-9672-f61ed115cf38")
-	)
-	(no_connect
-		(at 102.87 76.2)
-		(uuid "0bba183e-20a5-4df7-b2a9-90b327f5e5cc")
-	)
-	(no_connect
-		(at 102.87 78.74)
-		(uuid "d198d1ee-3d4a-4834-8779-cb2a4d45dd25")
-	)
-	(no_connect
-		(at 115.57 76.2)
-		(uuid "5dd23dda-cba5-4903-a2cc-d783402e40f1")
-	)
-	(no_connect
-		(at 115.57 78.74)
-		(uuid "34762522-9f08-4d4c-8135-714a20d43458")
-	)
-	(symbol
-		(lib_id "Device:Battery")
-		(at 109.22 62.23 90)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "042985b2-a5dd-43be-a962-19189c9c9cab")
-		(property "Reference" "BT1"
-			(at 108.6485 54.61 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "Battery"
-			(at 108.6485 57.15 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Battery:BatteryHolder_MYOUNG_BS-07-A1BJ001_CR2032"
-			(at 107.696 62.23 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "~"
-			(at 107.696 62.23 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Multiple-cell battery"
-			(at 109.22 62.23 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "2073290b-c791-48a0-88e8-8a1afb3d214d")
-		)
-		(pin "2"
-			(uuid "c7b75305-9dd4-4d93-a2af-417151fc741c")
-		)
-		(instances
-			(project ""
-				(path "/3e7d9386-cd47-413a-8a37-d88668a03129"
-					(reference "BT1")
-					(unit 1)
-				)
-			)
-		)
 	)
 	(symbol
 		(lib_id "Connector_Generic:Conn_02x03_Odd_Even")
@@ -686,6 +588,83 @@
 			(project ""
 				(path "/3e7d9386-cd47-413a-8a37-d88668a03129"
 					(reference "J1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:LED")
+		(at 107.95 62.23 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "e95b662c-8544-4c46-b3f8-764d22673cf2")
+		(property "Reference" "D1"
+			(at 109.5375 54.61 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "LED"
+			(at 109.5375 57.15 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric"
+			(at 107.95 62.23 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 107.95 62.23 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Light emitting diode"
+			(at 107.95 62.23 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Sim.Pins" "1=K 2=A"
+			(at 107.95 62.23 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "63a61d0f-0423-4386-8a2b-8bed10d23e4e")
+		)
+		(pin "2"
+			(uuid "e4f5ac9c-fad5-4a5f-9a62-38e509393c44")
+		)
+		(instances
+			(project ""
+				(path "/3e7d9386-cd47-413a-8a37-d88668a03129"
+					(reference "D1")
 					(unit 1)
 				)
 			)

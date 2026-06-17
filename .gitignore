@@ -9,6 +9,7 @@
 *~
 _autosave-*
 *.tmp
+*.lck
 *-save.pro
 *-save.kicad_pcb
 *-backups/
@@ -25,6 +26,7 @@ hardware/**/output/
 hardware/**/outputs/
 hardware/**/build/
 hardware/**/Fabrication/
+hardware/**/jlcpcb/
 site/
 visual-diff-output/
 visual-diff-work/
