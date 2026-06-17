@@ -280,7 +280,7 @@ jobs:
           fi
 
       - name: Upload visual diff artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.slug }}-pr-visual-diff
           path: visual-diff-output/${{ matrix.slug }}
@@ -313,7 +313,7 @@ jobs:
 
       - name: Upload PR ERC and DRC reports
         if: ${{ always() }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.slug }}-pr-check-reports
           path: ${{ matrix.dir }}/output/pr-checks
@@ -346,7 +346,7 @@ jobs:
 
       - name: Upload PR generated hardware outputs
         if: ${{ always() }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.slug }}-pr-hardware-outputs
           path: ${{ matrix.dir }}/output/pr-generated
@@ -447,7 +447,7 @@ jobs:
 
       - name: Upload PR 3D model outputs
         if: ${{ always() }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.slug }}-pr-3d-model
           path: hardware-pr-3d-artifacts/${{ matrix.slug }}
@@ -478,7 +478,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Download PR preview artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
