@@ -126,14 +126,13 @@ code {
 }
 
 .report-grid,
-.pdf-layout {
+.board-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
 article,
-.viewer-shell,
 .model-fallback {
   border: 1px solid #d7dde5;
   border-radius: 8px;
@@ -166,30 +165,10 @@ iframe {
   background: #ffffff;
 }
 
-.viewer-shell {
-  height: min(760px, 78vh);
-  overflow: hidden;
-}
-
-kicanvas-embed {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.pdf-layout article:last-child {
-  padding: 16px;
-}
-
-.link-list,
 .download-grid {
   margin: 14px 0 0;
   padding: 0;
   list-style: none;
-}
-
-.link-list li + li {
-  margin-top: 10px;
 }
 
 .model-fallback {
@@ -210,6 +189,40 @@ model-viewer {
   margin: 10px 0 0;
 }
 
+.board-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.board-card {
+  display: grid;
+  gap: 8px;
+  min-height: 136px;
+  padding: 18px;
+  border: 1px solid #d7dde5;
+  border-radius: 8px;
+  background: #ffffff;
+  color: inherit;
+  text-decoration: none;
+}
+
+.board-card:hover,
+.board-card:focus-visible {
+  border-color: #0b5cab;
+  outline: none;
+}
+
+.board-name {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.board-path,
+.board-meta {
+  color: #596579;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
 .download-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -221,6 +234,30 @@ model-viewer {
   border: 1px solid #d7dde5;
   border-radius: 8px;
   background: #ffffff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.section-compact {
+  padding-top: 0;
+}
+
+.pdf-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #d7dde5;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.pdf-links a {
+  padding: 8px 10px;
+  border: 1px solid #d7dde5;
+  border-radius: 6px;
+  background: #f6f7f9;
+  font-size: 0.92rem;
   font-weight: 700;
   text-decoration: none;
 }
@@ -238,7 +275,6 @@ model-viewer {
 
   .status-band,
   .report-grid,
-  .pdf-layout,
   .download-grid {
     grid-template-columns: 1fr;
   }

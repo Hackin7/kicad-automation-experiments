@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>__PROJECT_NAME__ Hardware Review</title>
     <link rel="stylesheet" href="style.css">
-    <script type="module" src="https://kicanvas.org/kicanvas/kicanvas.js"></script>
     <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   </head>
   <body>
@@ -15,11 +14,11 @@
         <h1 id="project-name">__PROJECT_NAME__</h1>
       </div>
       <nav aria-label="Page sections">
-        <a href="#reports">Reports</a>
-        <a href="#kicanvas">KiCanvas</a>
-        <a href="#pdfs">PDFs</a>
+        <a href="../../">Boards</a>
         <a href="#model">3D</a>
+        <a href="#reports">Reports</a>
         <a href="#downloads">Downloads</a>
+        <a href="#pdfs">PDFs</a>
       </nav>
     </header>
 
@@ -47,6 +46,17 @@
         </div>
       </section>
 
+      <section id="model" class="section">
+        <div class="section-heading">
+          <h2>3D Model</h2>
+          <p>The browser model viewer is enabled automatically when a GLB model is available.</p>
+        </div>
+        <div id="model-container" class="model-fallback">
+          <h3>No browser-viewable 3D model in this run</h3>
+          <p>The 3D model job did not publish <code>model/board.glb</code> for this project.</p>
+        </div>
+      </section>
+
       <section id="reports" class="section">
         <div class="section-heading">
           <h2>ERC and DRC Reports</h2>
@@ -70,61 +80,6 @@
         </div>
       </section>
 
-      <section id="kicanvas" class="section">
-        <div class="section-heading">
-          <h2>Interactive KiCad View</h2>
-          <p>Powered by KiCanvas using the source schematic and PCB from this run.</p>
-        </div>
-        <div class="viewer-shell">
-          <kicanvas-embed controls="full">
-            <kicanvas-source id="kicanvas-project" src="kicad/__PROJECT_FILE__"></kicanvas-source>
-            <kicanvas-source id="kicanvas-schematic" src="kicad/__SCHEMATIC_FILE__"></kicanvas-source>
-            <kicanvas-source id="kicanvas-board" src="kicad/__BOARD_FILE__"></kicanvas-source>
-          </kicanvas-embed>
-        </div>
-      </section>
-
-      <section id="pdfs" class="section">
-        <div class="section-heading">
-          <h2>Review PDFs</h2>
-          <p>Schematic and PCB layer plots from KiBot.</p>
-        </div>
-        <div class="pdf-layout">
-          <article>
-            <div class="card-head">
-              <h3>Schematic</h3>
-              <a id="schematic-pdf-link" href="outputs/pdf/__BASE_NAME__-schematic.pdf">Open PDF</a>
-            </div>
-            <iframe id="schematic-pdf-frame" title="Schematic PDF" src="outputs/pdf/__BASE_NAME__-schematic.pdf"></iframe>
-          </article>
-          <article>
-            <h3>PCB Layers</h3>
-            <ul class="link-list">
-              <li><a data-pcb-pdf="front-copper" href="#">Front copper</a></li>
-              <li><a data-pcb-pdf="back-copper" href="#">Back copper</a></li>
-              <li><a data-pcb-pdf="front-silkscreen" href="#">Front silkscreen</a></li>
-              <li><a data-pcb-pdf="back-silkscreen" href="#">Back silkscreen</a></li>
-              <li><a data-pcb-pdf="front-mask" href="#">Front solder mask</a></li>
-              <li><a data-pcb-pdf="back-mask" href="#">Back solder mask</a></li>
-              <li><a data-pcb-pdf="front-fab" href="#">Front fabrication</a></li>
-              <li><a data-pcb-pdf="back-fab" href="#">Back fabrication</a></li>
-              <li><a data-pcb-pdf="edge-cuts" href="#">Edge cuts</a></li>
-            </ul>
-          </article>
-        </div>
-      </section>
-
-      <section id="model" class="section">
-        <div class="section-heading">
-          <h2>3D Model</h2>
-          <p>The browser model viewer is enabled automatically when a GLB model is available.</p>
-        </div>
-        <div id="model-container" class="model-fallback">
-          <h3>No browser-viewable 3D model in this run</h3>
-          <p>The 3D model job did not publish <code>model/board.glb</code> for this project.</p>
-        </div>
-      </section>
-
       <section id="downloads" class="section">
         <div class="section-heading">
           <h2>Downloads</h2>
@@ -137,6 +92,25 @@
           <a data-output-file="jlcpcb-bom" href="#">JLCPCB BOM CSV</a>
           <a data-output-file="jlcpcb-cpl" href="#">JLCPCB CPL CSV</a>
           <a data-output-file="ibom" href="#">Interactive BOM</a>
+        </div>
+      </section>
+
+      <section id="pdfs" class="section section-compact">
+        <div class="section-heading">
+          <h2>PDFs</h2>
+          <p>Schematic and PCB layer plots from KiBot.</p>
+        </div>
+        <div class="pdf-links">
+          <a id="schematic-pdf-link" href="outputs/pdf/__BASE_NAME__-schematic.pdf">Schematic</a>
+          <a data-pcb-pdf="front-copper" href="#">Front copper</a>
+          <a data-pcb-pdf="back-copper" href="#">Back copper</a>
+          <a data-pcb-pdf="front-silkscreen" href="#">Front silkscreen</a>
+          <a data-pcb-pdf="back-silkscreen" href="#">Back silkscreen</a>
+          <a data-pcb-pdf="front-mask" href="#">Front mask</a>
+          <a data-pcb-pdf="back-mask" href="#">Back mask</a>
+          <a data-pcb-pdf="front-fab" href="#">Front fab</a>
+          <a data-pcb-pdf="back-fab" href="#">Back fab</a>
+          <a data-pcb-pdf="edge-cuts" href="#">Edge cuts</a>
         </div>
       </section>
     </main>
@@ -157,9 +131,6 @@
 
       const projectName = info.projectName || 'Hardware Review';
       const baseName = info.baseName || 'board';
-      const projectFile = info.projectFile || `${baseName}.kicad_pro`;
-      const schematicFile = info.schematicFile || `${baseName}.kicad_sch`;
-      const boardFile = info.boardFile || `${baseName}.kicad_pcb`;
       document.title = `${projectName} Hardware Review`;
       setText('project-name', projectName);
 
@@ -171,11 +142,7 @@
       setUrl('erc-frame', `reports/${baseName}-erc.html`, 'src');
       setUrl('drc-link', `reports/${baseName}-drc.html`);
       setUrl('drc-frame', `reports/${baseName}-drc.html`, 'src');
-      setUrl('kicanvas-project', `kicad/${projectFile}`, 'src');
-      setUrl('kicanvas-schematic', `kicad/${schematicFile}`, 'src');
-      setUrl('kicanvas-board', `kicad/${boardFile}`, 'src');
       setUrl('schematic-pdf-link', `outputs/pdf/${baseName}-schematic.pdf`);
-      setUrl('schematic-pdf-frame', `outputs/pdf/${baseName}-schematic.pdf`, 'src');
 
       document.querySelectorAll('[data-pcb-pdf]').forEach((link) => {
         link.href = `outputs/pdf/${baseName}-pcb-${link.dataset.pcbPdf}.pdf`;

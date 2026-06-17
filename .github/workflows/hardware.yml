@@ -240,7 +240,56 @@ jobs:
           set -euo pipefail
 
           mkdir -p site/projects
-          first_slug="$(echo "$PROJECTS_JSON" | jq -r '.[0].slug')"
+          cp tools/hardware-site/style.css site/style.css
+          cat > site/index.html <<EOF
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>Hardware Boards</title>
+              <link rel="stylesheet" href="style.css">
+            </head>
+            <body>
+              <header class="topbar">
+                <div>
+                  <p class="eyebrow">KiCad CI review</p>
+                  <h1>Hardware Boards</h1>
+                </div>
+                <nav aria-label="Project links">
+                  <a href="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}">Actions run</a>
+                </nav>
+              </header>
+              <main>
+                <section class="status-band" aria-label="Build status">
+                  <div>
+                    <span class="label">Run</span>
+                    <a href="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}">GitHub Actions</a>
+                  </div>
+                  <div>
+                    <span class="label">Commit</span>
+                    <code>${GITHUB_SHA:0:12}</code>
+                  </div>
+                  <div>
+                    <span class="label">ERC / DRC</span>
+                    <code>${CHECKS_RESULT:-unknown}</code>
+                  </div>
+                  <div>
+                    <span class="label">Outputs</span>
+                    <code>${OUTPUTS_RESULT:-unknown}</code>
+                  </div>
+                  <div>
+                    <span class="label">3D</span>
+                    <code>${MODELS_RESULT:-unknown}</code>
+                  </div>
+                </section>
+                <section class="section">
+                  <div class="section-heading">
+                    <h2>Boards</h2>
+                    <p>Select a board to review generated reports, fabrication files, PDFs, and 3D model output.</p>
+                  </div>
+                  <div class="board-grid">
+          EOF
 
           echo "$PROJECTS_JSON" | jq -c '.[]' | while read -r project; do
             slug="$(echo "$project" | jq -r '.slug')"
@@ -301,9 +350,23 @@ jobs:
             if [ ! -f "$project_site/reports/$basename-drc.html" ]; then
               printf '<!doctype html><title>DRC report unavailable</title><h1>DRC report unavailable</h1><p>No DRC report artifact was produced for this run.</p>' > "$project_site/reports/$basename-drc.html"
             fi
+
+            cat >> site/index.html <<EOF
+                    <a class="board-card" href="projects/$slug/">
+                      <span class="board-name">$name</span>
+                      <span class="board-path">$project_dir</span>
+                      <span class="board-meta">$board_file</span>
+                    </a>
+          EOF
           done
 
-          cp -a "site/projects/$first_slug/." site/
+          cat >> site/index.html <<EOF
+                  </div>
+                </section>
+              </main>
+            </body>
+          </html>
+          EOF
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v4
@@ -377,13 +440,10 @@ jobs:
             echo
             echo '| Project | Review site | Artifacts |'
             echo '| --- | --- | --- |'
-            first_slug="$(echo "$PROJECTS_JSON" | jq -r '.[0].slug')"
             echo "$PROJECTS_JSON" | jq -c '.[]' | while read -r project; do
               slug="$(echo "$project" | jq -r '.slug')"
               name="$(echo "$project" | jq -r '.name')"
-              if [ -n "${PAGES_URL:-}" ] && [ "$slug" = "$first_slug" ]; then
-                page_link="[Open](${PAGES_URL})"
-              elif [ -n "${PAGES_URL:-}" ]; then
+              if [ -n "${PAGES_URL:-}" ]; then
                 page_link="[Open](${pages_base}/projects/${slug}/)"
               else
                 page_link="Pages not published"
