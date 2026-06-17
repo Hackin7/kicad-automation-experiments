@@ -1,0 +1,27 @@
+# KiCad temporary and local state files
+*.000
+*.bak
+*.bck
+*.kicad_pcb-bak
+*.kicad_sch-bak
+*.kicad_prl
+*.sch-bak
+*~
+_autosave-*
+*.tmp
+*-save.pro
+*-save.kicad_pcb
+*-backups/
+fp-info-cache
+
+# KiCad exported/intermediate files
+*.net
+*.dsn
+*.ses
+*.rules
+
+# Generated hardware CI/output artifacts
+hardware/**/output/
+hardware/**/outputs/
+hardware/**/build/
+hardware/**/Fabrication/

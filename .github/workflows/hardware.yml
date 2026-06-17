@@ -1,0 +1,70 @@
+name: Hardware CI
+
+on:
+  push:
+    paths:
+      - "hardware/**"
+      - ".github/workflows/hardware.yml"
+  pull_request:
+    paths:
+      - "hardware/**"
+      - ".github/workflows/hardware.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HARDWARE_DIR: hardware/sao_coincell_adapter
+  SCHEMATIC_FILE: hardware/sao_coincell_adapter/sao_coincell_adaptor.kicad_sch
+  BOARD_FILE: hardware/sao_coincell_adapter/sao_coincell_adaptor.kicad_pcb
+
+jobs:
+  hardware-checks:
+    name: ERC and DRC
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run KiBot ERC and DRC
+        uses: INTI-CMNB/KiBot@v2_k9
+        with:
+          config: ${{ env.HARDWARE_DIR }}/checks.kibot.yaml
+          schema: ${{ env.SCHEMATIC_FILE }}
+          board: ${{ env.BOARD_FILE }}
+          dir: ${{ env.HARDWARE_DIR }}/output/checks
+          targets: NONE
+
+      - name: Upload ERC and DRC reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sao-coincell-adapter-check-reports
+          path: ${{ env.HARDWARE_DIR }}/output/checks
+          if-no-files-found: warn
+
+  hardware-outputs:
+    name: Documentation and fabrication outputs
+    runs-on: ubuntu-latest
+    needs: hardware-checks
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate KiCad outputs
+        uses: INTI-CMNB/KiBot@v2_k9
+        with:
+          config: ${{ env.HARDWARE_DIR }}/outputs.kibot.yaml
+          schema: ${{ env.SCHEMATIC_FILE }}
+          board: ${{ env.BOARD_FILE }}
+          dir: ${{ env.HARDWARE_DIR }}/output/generated
+
+      - name: Upload generated hardware outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: sao-coincell-adapter-hardware-outputs
+          path: ${{ env.HARDWARE_DIR }}/output/generated
+          if-no-files-found: error
