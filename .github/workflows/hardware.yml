@@ -276,6 +276,7 @@ jobs:
 
           No visual diff was generated because this project was not found in the baseline.
           EOF
+            cp "$out_root/SUMMARY.md" "$out_root/GITHUB_SUMMARY.md"
             exit 0
           fi
 
@@ -405,7 +406,26 @@ jobs:
                 printf -- '- `%s` (%s bytes)\n' "$rel" "$size_bytes"
               done
             fi
-          } > "$out_root/SUMMARY.md"
+          } > "$out_root/GITHUB_SUMMARY.md"
+
+          cp "$out_root/GITHUB_SUMMARY.md" "$out_root/SUMMARY.md"
+          if [ "$generated" -gt 0 ]; then
+            {
+              echo
+              echo "## Embedded Preview"
+              echo
+              if [ -f "$out_root/diff/pcb/All_Layers.svg" ]; then
+                echo "![Combined PCB diff](diff/pcb/All_Layers.svg)"
+                echo
+              fi
+              schematic_preview="$(find "$out_root/diff/schematic" -maxdepth 1 -type f -name '*.svg' -print | sort | head -n 1 || true)"
+              if [ -n "$schematic_preview" ]; then
+                schematic_rel="${schematic_preview#$out_root/}"
+                echo "![Schematic diff]($schematic_rel)"
+                echo
+              fi
+            } >> "$out_root/SUMMARY.md"
+          fi
 
       - name: Upload visual diff artifact
         id: upload-visual-diff
@@ -436,11 +456,19 @@ jobs:
               echo "Visual diff artifact link is unavailable. Open the run's Artifacts section and download \`$project_slug-visual-diff\`."
             fi
             echo
-            if [ -f "$out_root/SUMMARY.md" ]; then
-              cat "$out_root/SUMMARY.md"
+            if [ -f "$out_root/GITHUB_SUMMARY.md" ]; then
+              cat "$out_root/GITHUB_SUMMARY.md"
             else
               echo "No visual diff summary file was generated."
             fi
+            echo
+            echo "## Inline SVG Render Test"
+            echo
+            echo '<svg width="260" height="90" viewBox="0 0 260 90" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Inline SVG render test">'
+            echo '  <rect x="1" y="1" width="258" height="88" rx="6" fill="#ffffff" stroke="#111827" stroke-width="2"/>'
+            echo '  <circle cx="45" cy="45" r="24" fill="#ef4444"/>'
+            echo '  <text x="86" y="52" font-family="Arial, sans-serif" font-size="18" fill="#111827">Inline SVG renders?</text>'
+            echo '</svg>'
           } >> "$GITHUB_STEP_SUMMARY"
 
   build-pages-site:
