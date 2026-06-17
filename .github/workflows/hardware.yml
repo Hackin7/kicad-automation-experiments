@@ -305,6 +305,10 @@ jobs:
             kicad_cli pcb export svg --layers "$layer" --output "$out_root/current/pcb/$safe_layer.svg" "$current_board"
           done
 
+          combined_layers="$(IFS=,; echo "${pcb_layers[*]}")"
+          kicad_cli pcb export svg --layers "$combined_layers" --output "$out_root/base/pcb/All_Layers.svg" "$base_board"
+          kicad_cli pcb export svg --layers "$combined_layers" --output "$out_root/current/pcb/All_Layers.svg" "$current_board"
+
           image_size() {
             identify -format "%w %h" "$1"
           }
