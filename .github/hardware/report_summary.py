@@ -35,6 +35,85 @@ class TextExtractor(html.parser.HTMLParser):
         return "".join(self.parts)
 
 
+class HtmlIssueExtractor(html.parser.HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.in_content_table = False
+        self.table_depth = 0
+        self.in_row = False
+        self.in_cell = False
+        self.current_cell = []  # type: List[str]
+        self.current_cell_class = ""
+        self.current_row = []  # type: List[dict]
+        self.rows = []  # type: List[dict]
+
+    def handle_starttag(self, tag, attrs):
+        attrs_dict = dict(attrs)
+        classes = set(attrs_dict.get("class", "").split())
+
+        if tag == "table" and "content-table" in classes:
+            self.in_content_table = True
+            self.table_depth = 1
+            return
+
+        if self.in_content_table and tag == "table":
+            self.table_depth += 1
+        elif self.in_content_table and tag == "tr":
+            self.in_row = True
+            self.current_row = []
+        elif self.in_row and tag == "td":
+            self.in_cell = True
+            self.current_cell = []
+            self.current_cell_class = attrs_dict.get("class", "")
+        elif self.in_cell and tag == "br":
+            self.current_cell.append("\n")
+
+    def handle_endtag(self, tag):
+        if self.in_cell and tag == "td":
+            text = re.sub(r"\s+", " ", "".join(self.current_cell)).strip()
+            self.current_row.append({
+                "text": text,
+                "class": self.current_cell_class,
+            })
+            self.in_cell = False
+            self.current_cell = []
+            self.current_cell_class = ""
+        elif self.in_row and tag == "tr":
+            if len(self.current_row) >= 3:
+                first_class = self.current_row[0]["class"].lower()
+                if "td-error" in first_class or "td-warning" in first_class:
+                    self.rows.append({
+                        "severity": severity_from_class(first_class),
+                        "code": self.current_row[0]["text"],
+                        "description": self.current_row[1]["text"],
+                        "location": self.current_row[2]["text"],
+                    })
+            self.in_row = False
+            self.current_row = []
+        elif self.in_content_table and tag == "table":
+            self.table_depth -= 1
+            if self.table_depth <= 0:
+                self.in_content_table = False
+
+    def handle_data(self, data):
+        if self.in_cell:
+            self.current_cell.append(data)
+
+
+def severity_from_class(class_name):
+    if "td-error" in class_name:
+        return "Error"
+    if "td-warning" in class_name:
+        return "Warning"
+    return "Info"
+
+
+def html_issue_rows(path):
+    parser = HtmlIssueExtractor()
+    parser.feed(path.read_text(encoding="utf-8", errors="replace"))
+    return parser.rows
+
+
 def read_report(path):
     text = path.read_text(encoding="utf-8", errors="replace")
     if path.suffix.lower() in {".html", ".htm"}:
@@ -108,6 +187,21 @@ def markdown_cell(value):
     return value.replace("\\", "\\\\").replace("|", "\\|").replace("\n", " ")
 
 
+def structured_issue_table(issues):
+    rows = ["| # | Severity | Code | Description | Location |", "| ---: | --- | --- | --- | --- |"]
+    for index, issue in enumerate(issues, start=1):
+        rows.append(
+            "| {} | {} | {} | {} | {} |".format(
+                index,
+                markdown_cell(issue["severity"]),
+                markdown_cell(issue["code"]),
+                markdown_cell(issue["description"]),
+                markdown_cell(issue["location"]),
+            )
+        )
+    return "\n".join(rows)
+
+
 def issue_table(issues):
     rows = ["| # | Severity | Issue |", "| ---: | --- | --- |"]
     for index, issue in enumerate(issues, start=1):
@@ -116,13 +210,19 @@ def issue_table(issues):
 
 
 def summarize_report(path):
+    if path.suffix.lower() in {".html", ".htm"}:
+        html_issues = html_issue_rows(path)
+        if html_issues:
+            return structured_issue_table(html_issues), True
+        return "No issues found in this report.", False
+
     lines = normalize_lines(read_report(path))
     if not lines or looks_like_no_issues(lines):
         return "No issues found in this report.", False
 
     issues = issue_lines(lines)
     if not issues:
-        issues = lines
+        return "No issue rows found in this report. See the full HTML/text report for details.", False
 
     return issue_table(issues), bool(issues)
 
