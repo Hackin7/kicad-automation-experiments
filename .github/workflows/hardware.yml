@@ -254,8 +254,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p site/projects
+          mkdir -p site/projects site/preview
           cp .github/hardware/site/style.css site/style.css
+          cp .github/hardware/site/pr-preview.html site/preview/index.html
           cat > site/index.html <<EOF
           <!doctype html>
           <html lang="en">

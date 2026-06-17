@@ -27,6 +27,6 @@ hardware/**/outputs/
 hardware/**/build/
 hardware/**/Fabrication/
 hardware/**/jlcpcb/
-site/
+/site/
 visual-diff-output/
 visual-diff-work/
