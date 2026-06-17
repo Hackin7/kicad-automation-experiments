@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SAO Coincell Adapter Hardware Review</title>
+    <title>__PROJECT_NAME__ Hardware Review</title>
     <link rel="stylesheet" href="style.css">
     <script type="module" src="https://kicanvas.org/kicanvas/kicanvas.js"></script>
     <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
@@ -12,7 +12,7 @@
     <header class="topbar">
       <div>
         <p class="eyebrow">KiCad CI review</p>
-        <h1>SAO Coincell Adapter</h1>
+        <h1 id="project-name">__PROJECT_NAME__</h1>
       </div>
       <nav aria-label="Page sections">
         <a href="#reports">Reports</a>
@@ -41,6 +41,10 @@
           <span class="label">Outputs</span>
           <code id="outputs-result">unknown</code>
         </div>
+        <div>
+          <span class="label">3D</span>
+          <code id="models-result">unknown</code>
+        </div>
       </section>
 
       <section id="reports" class="section">
@@ -52,16 +56,16 @@
           <article>
             <div class="card-head">
               <h3>ERC</h3>
-              <a href="reports/sao_coincell_adaptor-erc.html">Open full report</a>
+              <a id="erc-link" href="reports/__BASE_NAME__-erc.html">Open full report</a>
             </div>
-            <iframe title="ERC report" src="reports/sao_coincell_adaptor-erc.html"></iframe>
+            <iframe id="erc-frame" title="ERC report" src="reports/__BASE_NAME__-erc.html"></iframe>
           </article>
           <article>
             <div class="card-head">
               <h3>DRC</h3>
-              <a href="reports/sao_coincell_adaptor-drc.html">Open full report</a>
+              <a id="drc-link" href="reports/__BASE_NAME__-drc.html">Open full report</a>
             </div>
-            <iframe title="DRC report" src="reports/sao_coincell_adaptor-drc.html"></iframe>
+            <iframe id="drc-frame" title="DRC report" src="reports/__BASE_NAME__-drc.html"></iframe>
           </article>
         </div>
       </section>
@@ -73,9 +77,9 @@
         </div>
         <div class="viewer-shell">
           <kicanvas-embed controls="full">
-            <kicanvas-source src="kicad/sao_coincell_adaptor.kicad_pro"></kicanvas-source>
-            <kicanvas-source src="kicad/sao_coincell_adaptor.kicad_sch"></kicanvas-source>
-            <kicanvas-source src="kicad/sao_coincell_adaptor.kicad_pcb"></kicanvas-source>
+            <kicanvas-source id="kicanvas-project" src="kicad/__PROJECT_FILE__"></kicanvas-source>
+            <kicanvas-source id="kicanvas-schematic" src="kicad/__SCHEMATIC_FILE__"></kicanvas-source>
+            <kicanvas-source id="kicanvas-board" src="kicad/__BOARD_FILE__"></kicanvas-source>
           </kicanvas-embed>
         </div>
       </section>
@@ -89,22 +93,22 @@
           <article>
             <div class="card-head">
               <h3>Schematic</h3>
-              <a href="outputs/pdf/sao_coincell_adaptor-schematic.pdf">Open PDF</a>
+              <a id="schematic-pdf-link" href="outputs/pdf/__BASE_NAME__-schematic.pdf">Open PDF</a>
             </div>
-            <iframe title="Schematic PDF" src="outputs/pdf/sao_coincell_adaptor-schematic.pdf"></iframe>
+            <iframe id="schematic-pdf-frame" title="Schematic PDF" src="outputs/pdf/__BASE_NAME__-schematic.pdf"></iframe>
           </article>
           <article>
             <h3>PCB Layers</h3>
             <ul class="link-list">
-              <li><a href="outputs/pdf/sao_coincell_adaptor-pcb-front-copper.pdf">Front copper</a></li>
-              <li><a href="outputs/pdf/sao_coincell_adaptor-pcb-back-copper.pdf">Back copper</a></li>
-              <li><a href="outputs/pdf/sao_coincell_adaptor-pcb-front-silkscreen.pdf">Front silkscreen</a></li>
-              <li><a href="outputs/pdf/sao_coincell_adaptor-pcb-back-silkscreen.pdf">Back silkscreen</a></li>
-              <li><a href="outputs/pdf/sao_coincell_adaptor-pcb-front-mask.pdf">Front solder mask</a></li>
-              <li><a href="outputs/pdf/sao_coincell_adaptor-pcb-back-mask.pdf">Back solder mask</a></li>
-              <li><a href="outputs/pdf/sao_coincell_adaptor-pcb-front-fab.pdf">Front fabrication</a></li>
-              <li><a href="outputs/pdf/sao_coincell_adaptor-pcb-back-fab.pdf">Back fabrication</a></li>
-              <li><a href="outputs/pdf/sao_coincell_adaptor-pcb-edge-cuts.pdf">Edge cuts</a></li>
+              <li><a data-pcb-pdf="front-copper" href="#">Front copper</a></li>
+              <li><a data-pcb-pdf="back-copper" href="#">Back copper</a></li>
+              <li><a data-pcb-pdf="front-silkscreen" href="#">Front silkscreen</a></li>
+              <li><a data-pcb-pdf="back-silkscreen" href="#">Back silkscreen</a></li>
+              <li><a data-pcb-pdf="front-mask" href="#">Front solder mask</a></li>
+              <li><a data-pcb-pdf="back-mask" href="#">Back solder mask</a></li>
+              <li><a data-pcb-pdf="front-fab" href="#">Front fabrication</a></li>
+              <li><a data-pcb-pdf="back-fab" href="#">Back fabrication</a></li>
+              <li><a data-pcb-pdf="edge-cuts" href="#">Edge cuts</a></li>
             </ul>
           </article>
         </div>
@@ -117,7 +121,7 @@
         </div>
         <div id="model-container" class="model-fallback">
           <h3>No browser-viewable 3D model in this run</h3>
-          <p>A future CI step can place <code>model/board.glb</code> here after a reliable Blender or glTF export path is added.</p>
+          <p>The 3D model job did not publish <code>model/board.glb</code> for this project.</p>
         </div>
       </section>
 
@@ -127,12 +131,12 @@
           <p>Fabrication and assembly files from this run.</p>
         </div>
         <div class="download-grid">
-          <a href="outputs/bom/sao_coincell_adaptor-generic-bom.csv">Generic BOM CSV</a>
-          <a href="outputs/fab/sao_coincell_adaptor-generic-fab.zip">Generic fabrication ZIP</a>
-          <a href="outputs/jlcpcb/sao_coincell_adaptor-jlcpcb-gerbers.zip">JLCPCB Gerbers ZIP</a>
-          <a href="outputs/jlcpcb/sao_coincell_adaptor-jlcpcb-bom.csv">JLCPCB BOM CSV</a>
-          <a href="outputs/jlcpcb/sao_coincell_adaptor-jlcpcb-cpl.csv">JLCPCB CPL CSV</a>
-          <a href="outputs/ibom/sao_coincell_adaptor-ibom.html">Interactive BOM</a>
+          <a data-output-file="generic-bom" href="#">Generic BOM CSV</a>
+          <a data-output-file="generic-fab" href="#">Generic fabrication ZIP</a>
+          <a data-output-file="jlcpcb-gerbers" href="#">JLCPCB Gerbers ZIP</a>
+          <a data-output-file="jlcpcb-bom" href="#">JLCPCB BOM CSV</a>
+          <a data-output-file="jlcpcb-cpl" href="#">JLCPCB CPL CSV</a>
+          <a data-output-file="ibom" href="#">Interactive BOM</a>
         </div>
       </section>
     </main>
@@ -149,6 +153,45 @@
       setText('commit-sha', info.sha ? info.sha.slice(0, 12) : 'unknown');
       setText('checks-result', info.checksResult);
       setText('outputs-result', info.outputsResult);
+      setText('models-result', info.modelsResult);
+
+      const projectName = info.projectName || 'Hardware Review';
+      const baseName = info.baseName || 'board';
+      const projectFile = info.projectFile || `${baseName}.kicad_pro`;
+      const schematicFile = info.schematicFile || `${baseName}.kicad_sch`;
+      const boardFile = info.boardFile || `${baseName}.kicad_pcb`;
+      document.title = `${projectName} Hardware Review`;
+      setText('project-name', projectName);
+
+      const setUrl = (id, url, attr = 'href') => {
+        const node = document.getElementById(id);
+        if (node) node.setAttribute(attr, url);
+      };
+      setUrl('erc-link', `reports/${baseName}-erc.html`);
+      setUrl('erc-frame', `reports/${baseName}-erc.html`, 'src');
+      setUrl('drc-link', `reports/${baseName}-drc.html`);
+      setUrl('drc-frame', `reports/${baseName}-drc.html`, 'src');
+      setUrl('kicanvas-project', `kicad/${projectFile}`, 'src');
+      setUrl('kicanvas-schematic', `kicad/${schematicFile}`, 'src');
+      setUrl('kicanvas-board', `kicad/${boardFile}`, 'src');
+      setUrl('schematic-pdf-link', `outputs/pdf/${baseName}-schematic.pdf`);
+      setUrl('schematic-pdf-frame', `outputs/pdf/${baseName}-schematic.pdf`, 'src');
+
+      document.querySelectorAll('[data-pcb-pdf]').forEach((link) => {
+        link.href = `outputs/pdf/${baseName}-pcb-${link.dataset.pcbPdf}.pdf`;
+      });
+
+      const outputFiles = {
+        'generic-bom': `outputs/bom/${baseName}-generic-bom.csv`,
+        'generic-fab': `outputs/fab/${baseName}-generic-fab.zip`,
+        'jlcpcb-gerbers': `outputs/jlcpcb/${baseName}-jlcpcb-gerbers.zip`,
+        'jlcpcb-bom': `outputs/jlcpcb/${baseName}-jlcpcb-bom.csv`,
+        'jlcpcb-cpl': `outputs/jlcpcb/${baseName}-jlcpcb-cpl.csv`,
+        ibom: `outputs/ibom/${baseName}-ibom.html`
+      };
+      document.querySelectorAll('[data-output-file]').forEach((link) => {
+        link.href = outputFiles[link.dataset.outputFile] || '#';
+      });
 
       fetch('model/board.glb', { method: 'HEAD' })
         .then((response) => {
@@ -156,11 +199,13 @@
           document.getElementById('model-container').innerHTML = `
             <model-viewer
               src="model/board.glb"
+              poster="model/board-preview.png"
               camera-controls
               auto-rotate
               shadow-intensity="0.8"
               aria-label="Interactive 3D PCB model">
             </model-viewer>
+            <p class="model-actions"><a href="model/board.glb">Download GLB</a></p>
           `;
         })
         .catch(() => {});

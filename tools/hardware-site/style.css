@@ -73,7 +73,7 @@ main {
 
 .status-band {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 1px;
   margin-bottom: 24px;
   overflow: hidden;
@@ -204,6 +204,10 @@ model-viewer {
   border: 1px solid #d7dde5;
   border-radius: 8px;
   background: #eef2f7;
+}
+
+.model-actions {
+  margin: 10px 0 0;
 }
 
 .download-grid {
