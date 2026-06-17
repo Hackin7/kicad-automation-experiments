@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>__PROJECT_NAME__ Hardware Review</title>
     <link rel="stylesheet" href="style.css">
+    <script type="module" src="https://kicanvas.org/kicanvas/kicanvas.js"></script>
     <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   </head>
   <body>
@@ -15,6 +16,7 @@
       </div>
       <nav aria-label="Page sections">
         <a href="../../">Boards</a>
+        <a href="#kicanvas">KiCanvas</a>
         <a href="#model">3D</a>
         <a href="#reports">Reports</a>
         <a href="#downloads">Downloads</a>
@@ -43,6 +45,20 @@
         <div>
           <span class="label">3D</span>
           <code id="models-result">unknown</code>
+        </div>
+      </section>
+
+      <section id="kicanvas" class="section">
+        <div class="section-heading">
+          <h2>KiCanvas</h2>
+          <p>Interactive schematic and PCB view from the source files in this run.</p>
+        </div>
+        <div class="viewer-shell">
+          <kicanvas-embed controls="full">
+            <kicanvas-source id="kicanvas-project" src="kicad/__PROJECT_FILE__"></kicanvas-source>
+            <kicanvas-source id="kicanvas-schematic" src="kicad/__SCHEMATIC_FILE__"></kicanvas-source>
+            <kicanvas-source id="kicanvas-board" src="kicad/__BOARD_FILE__"></kicanvas-source>
+          </kicanvas-embed>
         </div>
       </section>
 
@@ -131,6 +147,9 @@
 
       const projectName = info.projectName || 'Hardware Review';
       const baseName = info.baseName || 'board';
+      const projectFile = info.projectFile || `${baseName}.kicad_pro`;
+      const schematicFile = info.schematicFile || `${baseName}.kicad_sch`;
+      const boardFile = info.boardFile || `${baseName}.kicad_pcb`;
       document.title = `${projectName} Hardware Review`;
       setText('project-name', projectName);
 
@@ -142,6 +161,9 @@
       setUrl('erc-frame', `reports/${baseName}-erc.html`, 'src');
       setUrl('drc-link', `reports/${baseName}-drc.html`);
       setUrl('drc-frame', `reports/${baseName}-drc.html`, 'src');
+      setUrl('kicanvas-project', `kicad/${projectFile}`, 'src');
+      setUrl('kicanvas-schematic', `kicad/${schematicFile}`, 'src');
+      setUrl('kicanvas-board', `kicad/${boardFile}`, 'src');
       setUrl('schematic-pdf-link', `outputs/pdf/${baseName}-schematic.pdf`);
 
       document.querySelectorAll('[data-pcb-pdf]').forEach((link) => {
