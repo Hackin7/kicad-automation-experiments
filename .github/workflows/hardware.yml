@@ -150,7 +150,12 @@ jobs:
           model_dir="hardware-3d-artifacts/${{ matrix.slug }}/model"
           mkdir -p "$model_dir"
 
-          vrml_path="$(find "${{ matrix.dir }}/output/3d-source" \( -iname '*.wrl' -o -iname '*.vrml' \) -print 2>/dev/null | head -n 1 || true)"
+          mapfile -t board_vrml_candidates < <(find "${{ matrix.dir }}/output/3d-source" \( -iname '*.wrl' -o -iname '*.vrml' \) ! -path '*/shapes3D/*' -print 2>/dev/null | sort)
+          if [ "${#board_vrml_candidates[@]}" -gt 0 ]; then
+            vrml_path="${board_vrml_candidates[0]}"
+          else
+            vrml_path="$(find "${{ matrix.dir }}/output/3d-source" \( -iname '*.wrl' -o -iname '*.vrml' \) -print 2>/dev/null | sort | head -n 1 || true)"
+          fi
           echo "path=${vrml_path}" >> "$GITHUB_OUTPUT"
 
           if [ -z "$vrml_path" ]; then
@@ -159,6 +164,7 @@ jobs:
               echo "KiBot VRML step outcome: ${{ steps.export-vrml.outcome }}"
             } > "$model_dir/README.txt"
           else
+            echo "Selected VRML model: $vrml_path"
             cp "$vrml_path" "$model_dir/board.wrl"
           fi
 
@@ -168,7 +174,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y blender
+          sudo apt-get install -y blender python3-numpy
 
       - name: Convert VRML model to GLB
         if: ${{ steps.find-vrml.outputs.path != '' }}
@@ -182,6 +188,9 @@ jobs:
             "${{ steps.find-vrml.outputs.path }}" \
             "$model_dir/board.glb" \
             "$model_dir/board-preview.png"
+
+          test -s "$model_dir/board.glb"
+          test -s "$model_dir/board-preview.png"
 
       - name: Upload 3D model outputs
         if: ${{ always() }}
