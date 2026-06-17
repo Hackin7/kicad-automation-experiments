@@ -418,6 +418,16 @@ jobs:
     if: ${{ always() }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download ERC and DRC report artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: "*-check-reports"
+          path: check-artifacts
+
       - name: Add links to run summary
         shell: bash
         env:
@@ -465,6 +475,18 @@ jobs:
               printf '| %s | %s | [%s reports, outputs, 3D](%s) |\n' "$name" "$page_link" "$slug" "$artifacts_url"
             done
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Add ERC and DRC issues to run summary
+        if: ${{ always() }}
+        shell: bash
+        env:
+          PROJECTS_JSON: ${{ needs.project-matrix.outputs.projects }}
+        run: |
+          set -euo pipefail
+
+          python3 .github/hardware/report_summary.py \
+            --projects-json "$PROJECTS_JSON" \
+            --artifacts-dir check-artifacts >> "$GITHUB_STEP_SUMMARY"
 
   hardware-gate:
     name: Hardware CI gate
