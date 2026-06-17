@@ -71,6 +71,15 @@ main {
   padding: 24px clamp(16px, 5vw, 64px) 56px;
 }
 
+@media (min-width: 1200px) {
+  main {
+    width: 60%;
+    margin: 0 auto;
+    padding-right: 0;
+    padding-left: 0;
+  }
+}
+
 .status-band {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
