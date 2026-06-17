@@ -26,3 +26,5 @@ hardware/**/outputs/
 hardware/**/build/
 hardware/**/Fabrication/
 site/
+visual-diff-output/
+visual-diff-work/

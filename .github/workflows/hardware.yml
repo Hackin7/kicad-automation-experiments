@@ -14,6 +14,11 @@ on:
       - "tools/hardware-site/**"
       - "tools/hardware-3d/**"
   workflow_dispatch:
+    inputs:
+      diff_base_ref:
+        description: "Git ref to compare against for schematic and PCB visual diffs"
+        required: false
+        default: "main"
 
 permissions:
   contents: read
@@ -200,6 +205,224 @@ jobs:
           path: hardware-3d-artifacts/${{ matrix.slug }}
           if-no-files-found: warn
 
+  hardware-visual-diff:
+    name: Visual diff (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    needs:
+      - project-matrix
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.project-matrix.outputs.matrix) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install visual diff tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository --yes ppa:kicad/kicad-9.0-releases
+          sudo apt-get update
+          sudo apt-get install -y kicad imagemagick librsvg2-bin
+
+      - name: Generate schematic and PCB visual diffs
+        shell: bash
+        env:
+          DIFF_BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || github.event.inputs.diff_base_ref || 'main' }}
+        run: |
+          set -euo pipefail
+
+          project_name='${{ matrix.name }}'
+          project_slug='${{ matrix.slug }}'
+          project_dir='${{ matrix.dir }}'
+          schematic_file='${{ matrix.schematic }}'
+          board_file='${{ matrix.board }}'
+          base_ref="${DIFF_BASE_REF:-main}"
+          if [ -z "$base_ref" ] || [ "$base_ref" = "null" ]; then
+            base_ref="main"
+          fi
+
+          out_root="visual-diff-output/$project_slug"
+          work_root="visual-diff-work/$project_slug"
+          base_tree="visual-diff-work/base"
+          mkdir -p "$out_root" "$work_root"
+
+          {
+            echo "## Visual diff: $project_name"
+            echo
+            echo "Baseline ref: \`$base_ref\`"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          git fetch origin "$base_ref" --depth=1
+          rm -rf "$base_tree"
+          git worktree add --detach "$base_tree" "origin/$base_ref"
+
+          current_schematic="$project_dir/$schematic_file"
+          current_board="$project_dir/$board_file"
+          base_schematic="$base_tree/$project_dir/$schematic_file"
+          base_board="$base_tree/$project_dir/$board_file"
+
+          if [ ! -f "$base_schematic" ] || [ ! -f "$base_board" ]; then
+            mkdir -p "$out_root"
+            cat > "$out_root/README.md" <<EOF
+          # Visual diff unavailable
+
+          The project \`$project_name\` does not exist at baseline ref \`$base_ref\`, or its schematic/PCB file names differ.
+          EOF
+            {
+              echo "_No visual diff was generated because this project was not found in the baseline._"
+              echo
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          kicad_cli() {
+            kicad-cli "$@"
+          }
+
+          mkdir -p \
+            "$out_root/base/schematic" \
+            "$out_root/current/schematic" \
+            "$out_root/base/pcb" \
+            "$out_root/current/pcb" \
+            "$out_root/diff/schematic" \
+            "$out_root/diff/pcb"
+
+          kicad_cli sch export svg --output "$out_root/base/schematic" "$base_schematic"
+          kicad_cli sch export svg --output "$out_root/current/schematic" "$current_schematic"
+
+          pcb_layers=(F.Cu B.Cu F.SilkS B.SilkS F.Mask B.Mask Edge.Cuts)
+          for layer in "${pcb_layers[@]}"; do
+            safe_layer="${layer//./_}"
+            kicad_cli pcb export svg --layers "$layer" --output "$out_root/base/pcb/$safe_layer.svg" "$base_board"
+            kicad_cli pcb export svg --layers "$layer" --output "$out_root/current/pcb/$safe_layer.svg" "$current_board"
+          done
+
+          image_size() {
+            identify -format "%w %h" "$1"
+          }
+
+          write_diff_svg() {
+            local base_svg="$1"
+            local current_svg="$2"
+            local label="$3"
+            local output_svg="$4"
+            local scratch="$work_root/$(echo "$label" | tr '/ .:' '____')"
+            mkdir -p "$scratch" "$(dirname "$output_svg")"
+
+            rsvg-convert "$base_svg" -o "$scratch/base.png"
+            rsvg-convert "$current_svg" -o "$scratch/current.png"
+
+            read -r base_w base_h < <(image_size "$scratch/base.png")
+            read -r current_w current_h < <(image_size "$scratch/current.png")
+            max_w="$base_w"
+            max_h="$base_h"
+            if [ "$current_w" -gt "$max_w" ]; then max_w="$current_w"; fi
+            if [ "$current_h" -gt "$max_h" ]; then max_h="$current_h"; fi
+
+            convert "$scratch/base.png" -background white -gravity northwest -extent "${max_w}x${max_h}" "$scratch/base-normalized.png"
+            convert "$scratch/current.png" -background white -gravity northwest -extent "${max_w}x${max_h}" "$scratch/current-normalized.png"
+            compare "$scratch/base-normalized.png" "$scratch/current-normalized.png" "$scratch/diff.png" >/dev/null 2>&1 || true
+
+            local gap=24
+            local label_h=36
+            local canvas_w=$((max_w * 3 + gap * 4))
+            local canvas_h=$((max_h + label_h + gap * 2))
+            local base_x="$gap"
+            local current_x=$((max_w + gap * 2))
+            local diff_x=$((max_w * 2 + gap * 3))
+            local image_y=$((label_h + gap))
+            local title_y=24
+            local b64_base b64_current b64_diff
+            b64_base="$(base64 -w0 "$scratch/base-normalized.png")"
+            b64_current="$(base64 -w0 "$scratch/current-normalized.png")"
+            b64_diff="$(base64 -w0 "$scratch/diff.png")"
+
+            cat > "$output_svg" <<EOF
+          <svg xmlns="http://www.w3.org/2000/svg" width="$canvas_w" height="$canvas_h" viewBox="0 0 $canvas_w $canvas_h" role="img" aria-label="$label visual diff">
+            <rect width="100%" height="100%" fill="#ffffff"/>
+            <style>
+              text { font-family: Arial, sans-serif; font-size: 16px; fill: #111827; }
+              .label { font-weight: 700; }
+            </style>
+            <text class="label" x="$base_x" y="$title_y">$label baseline</text>
+            <text class="label" x="$current_x" y="$title_y">$label current</text>
+            <text class="label" x="$diff_x" y="$title_y">$label diff</text>
+            <image href="data:image/png;base64,$b64_base" x="$base_x" y="$image_y" width="$max_w" height="$max_h"/>
+            <image href="data:image/png;base64,$b64_current" x="$current_x" y="$image_y" width="$max_w" height="$max_h"/>
+            <image href="data:image/png;base64,$b64_diff" x="$diff_x" y="$image_y" width="$max_w" height="$max_h"/>
+          </svg>
+          EOF
+          }
+
+          shopt -s globstar nullglob
+          generated=0
+
+          for current_svg in "$out_root/current/schematic"/*.svg; do
+            name="$(basename "$current_svg")"
+            base_svg="$out_root/base/schematic/$name"
+            if [ -f "$base_svg" ]; then
+              output_svg="$out_root/diff/schematic/$name"
+              write_diff_svg "$base_svg" "$current_svg" "Schematic $name" "$output_svg"
+              generated=$((generated + 1))
+            fi
+          done
+
+          for current_svg in "$out_root/current/pcb"/*.svg; do
+            name="$(basename "$current_svg")"
+            base_svg="$out_root/base/pcb/$name"
+            if [ -f "$base_svg" ]; then
+              output_svg="$out_root/diff/pcb/$name"
+              write_diff_svg "$base_svg" "$current_svg" "PCB ${name%.svg}" "$output_svg"
+              generated=$((generated + 1))
+            fi
+          done
+
+          {
+            if [ "$generated" -eq 0 ]; then
+              echo "_No matching schematic or PCB SVGs were available to diff._"
+            else
+              inline_count=0
+              inline_max=4
+              inline_byte_limit=180000
+              echo "Generated $generated visual diff SVG file(s)."
+              echo
+              echo "Download all visual diff files from the \`$project_slug-visual-diff\` artifact."
+              echo
+              for diff_svg in "$out_root"/diff/**/*.svg; do
+                rel="${diff_svg#$out_root/diff/}"
+                size_bytes="$(wc -c < "$diff_svg" | tr -d ' ')"
+                echo "### $rel"
+                echo
+                echo "Artifact path: \`$rel\`"
+                echo
+                if [ "$inline_count" -lt "$inline_max" ] && [ "$size_bytes" -le "$inline_byte_limit" ]; then
+                  svg_b64="$(base64 -w0 "$diff_svg")"
+                  echo "<img alt=\"$project_name $rel visual diff\" src=\"data:image/svg+xml;base64,$svg_b64\" width=\"900\">"
+                  inline_count=$((inline_count + 1))
+                else
+                  echo "_Preview omitted from the summary to keep large-board runs stable; download the artifact to view this SVG._"
+                fi
+                echo
+              done
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload visual diff artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.slug }}-visual-diff
+          path: visual-diff-output/${{ matrix.slug }}
+          if-no-files-found: warn
+
   build-pages-site:
     name: Build GitHub Pages site
     runs-on: ubuntu-latest
@@ -208,6 +431,7 @@ jobs:
       - hardware-checks
       - hardware-outputs
       - hardware-3d-model
+      - hardware-visual-diff
     if: ${{ always() }}
     permissions:
       contents: read
@@ -236,6 +460,7 @@ jobs:
           CHECKS_RESULT: ${{ needs.hardware-checks.result }}
           OUTPUTS_RESULT: ${{ needs.hardware-outputs.result }}
           MODELS_RESULT: ${{ needs.hardware-3d-model.result }}
+          VISUAL_DIFF_RESULT: ${{ needs.hardware-visual-diff.result }}
         run: |
           set -euo pipefail
 
@@ -427,6 +652,7 @@ jobs:
             echo "| ERC and DRC | \`${CHECKS_RESULT}\` |"
             echo "| Documentation and fabrication outputs | \`${OUTPUTS_RESULT}\` |"
             echo "| 3D model generation | \`${MODELS_RESULT}\` |"
+            echo "| Visual diff generation | \`${VISUAL_DIFF_RESULT}\` |"
             echo
             echo "Run: [${GITHUB_RUN_ID}](${run_url})"
             if [ -n "${PAGES_URL:-}" ]; then
