@@ -174,7 +174,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y blender python3-numpy
+          sudo apt-get install -y blender python3-numpy xvfb libegl1 libgl1 libglx-mesa0 libxi6 libxrender1
 
       - name: Convert VRML model to GLB
         if: ${{ steps.find-vrml.outputs.path != '' }}
@@ -184,7 +184,7 @@ jobs:
           model_dir="hardware-3d-artifacts/${{ matrix.slug }}/model"
           mkdir -p "$model_dir"
 
-          blender --background --python tools/hardware-3d/convert_vrml_to_glb.py -- \
+          xvfb-run -a blender --background --python tools/hardware-3d/convert_vrml_to_glb.py -- \
             "${{ steps.find-vrml.outputs.path }}" \
             "$model_dir/board.glb" \
             "$model_dir/board-preview.png"
