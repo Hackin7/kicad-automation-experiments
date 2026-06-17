@@ -1,0 +1,45 @@
+{
+  "repo": "Hackin7/kicad-automation-experiments",
+  "pr": 2,
+  "runId": "27707588531",
+  "baseSha": "27b9ec655f2f72872c190fe37b2ef5bb26fe9c57",
+  "headSha": "64aa4fd8562c771ff121d29f5691fc95305edfcb",
+  "boards": [
+    {
+      "name": "SAO Coincell Adapter",
+      "slug": "sao-coincell-adapter",
+      "previews": {
+        "pcb": [
+          {
+            "label": "All Layers",
+            "png": "sao-coincell-adapter/pcb/All_Layers.png"
+          }
+        ],
+        "schematic": [
+          {
+            "label": "sao_coincell_adaptor",
+            "png": "sao-coincell-adapter/schematic/sao_coincell_adaptor.png"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Simple LED Board",
+      "slug": "simple-led-board",
+      "previews": {
+        "pcb": [
+          {
+            "label": "All Layers",
+            "png": "simple-led-board/pcb/All_Layers.png"
+          }
+        ],
+        "schematic": [
+          {
+            "label": "simple_led_board",
+            "png": "simple-led-board/schematic/simple_led_board.png"
+          }
+        ]
+      }
+    }
+  ]
+}
