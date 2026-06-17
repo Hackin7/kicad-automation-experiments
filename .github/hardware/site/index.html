@@ -17,6 +17,7 @@
       <nav aria-label="Page sections">
         <a href="../../">Boards</a>
         <a href="#kicanvas">KiCanvas</a>
+        <a id="diff-nav-link" href="#visual-diff" hidden>Diff</a>
         <a href="#model">3D</a>
         <a href="#reports">Reports</a>
         <a href="#downloads">Downloads</a>
@@ -60,6 +61,23 @@
             <kicanvas-source id="kicanvas-board" src="kicad/__BOARD_FILE__"></kicanvas-source>
           </kicanvas-embed>
         </div>
+      </section>
+
+      <section id="visual-diff" class="section visual-diff-section" hidden>
+        <div class="section-heading">
+          <h2>Visual Diff</h2>
+          <p>Schematic and PCB differences for this pull request.</p>
+        </div>
+        <div id="diff-tabs" class="tab-row" role="tablist" aria-label="Visual diff views"></div>
+        <article class="preview-panel">
+          <div class="card-head">
+            <h3 id="diff-title">Visual diff</h3>
+            <a id="diff-open-link" href="#">Open full SVG</a>
+          </div>
+          <a id="diff-image-link" class="diff-image-link" href="#">
+            <img id="diff-image" class="diff-image" alt="Visual diff">
+          </a>
+        </article>
       </section>
 
       <section id="model" class="section">
@@ -181,6 +199,40 @@
       document.querySelectorAll('[data-output-file]').forEach((link) => {
         link.href = outputFiles[link.dataset.outputFile] || '#';
       });
+
+      const diffItems = Array.isArray(info.diff) ? info.diff.filter((item) => item && item.png) : [];
+      const diffSection = document.getElementById('visual-diff');
+      const diffNavLink = document.getElementById('diff-nav-link');
+      const diffTabs = document.getElementById('diff-tabs');
+      const diffTitle = document.getElementById('diff-title');
+      const diffOpenLink = document.getElementById('diff-open-link');
+      const diffImageLink = document.getElementById('diff-image-link');
+      const diffImage = document.getElementById('diff-image');
+
+      const selectDiff = (item, button) => {
+        diffTabs.querySelectorAll('.tab-button').forEach((node) => node.classList.remove('is-active'));
+        button.classList.add('is-active');
+        const target = item.svg || item.png;
+        diffTitle.textContent = item.label || 'Visual diff';
+        diffOpenLink.href = target;
+        diffImageLink.href = target;
+        diffImage.src = item.png;
+        diffImage.alt = item.label || 'Visual diff';
+      };
+
+      if (diffItems.length && diffSection && diffTabs) {
+        diffSection.hidden = false;
+        if (diffNavLink) diffNavLink.hidden = false;
+        diffItems.forEach((item, index) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = `tab-button${index === 0 ? ' is-active' : ''}`;
+          button.textContent = item.label || `Diff ${index + 1}`;
+          button.addEventListener('click', () => selectDiff(item, button));
+          diffTabs.appendChild(button);
+          if (index === 0) selectDiff(item, button);
+        });
+      }
 
       fetch('model/board.glb', { method: 'HEAD' })
         .then((response) => {
