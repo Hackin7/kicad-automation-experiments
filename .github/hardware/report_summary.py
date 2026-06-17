@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
-"""Create a compact Markdown summary of KiBot ERC/DRC reports."""
+"""Create a Markdown summary of KiBot ERC/DRC reports."""
 
 import argparse
 import html.parser
 import json
 import re
 from pathlib import Path
-from typing import List, Optional, Tuple
-
-
-MAX_ISSUES_PER_REPORT = 40
-MAX_LINE_LENGTH = 240
+from typing import List, Optional
 
 
 class TextExtractor(html.parser.HTMLParser):
@@ -55,8 +51,6 @@ def normalize_lines(text):
         if not line:
             continue
         line = re.sub(r"^\s*[•*-]\s*", "", line)
-        if len(line) > MAX_LINE_LENGTH:
-            line = line[: MAX_LINE_LENGTH - 1] + "..."
         lines.append(line)
     return lines
 
@@ -79,7 +73,7 @@ def looks_like_no_issues(lines):
     return any(re.search(pattern, joined) for pattern in no_issue_patterns)
 
 
-def interesting_lines(lines):
+def issue_lines(lines):
     skip_patterns = [
         r"^$", r"^date\b", r"^time\b", r"^kicad\b", r"^report\b", r"^file\b",
         r"^items? checked\b", r"^checking\b", r"^running\b", r"^board\b", r"^schematic\b",
@@ -97,29 +91,40 @@ def interesting_lines(lines):
             continue
         if any(re.search(pattern, lowered) for pattern in issue_patterns):
             selected.append(line)
-        elif selected and len(selected) < MAX_ISSUES_PER_REPORT and re.search(r"\([^)]+\)|\[[^]]+\]|\bat\b", lowered):
-            selected.append(line)
-        if len(selected) >= MAX_ISSUES_PER_REPORT:
-            break
 
     return selected
 
 
+def severity_for(line):
+    lowered = line.lower()
+    if re.search(r"\berror\b|\bviolation\b|\bshort\b|\bclearance\b|\boverlap\b|\bannular\b", lowered):
+        return "Error"
+    if re.search(r"\bwarning\b|\bunconnected\b|\bnot connected\b|\bmissing\b|\bconflict\b", lowered):
+        return "Warning"
+    return "Info"
+
+
+def markdown_cell(value):
+    return value.replace("\\", "\\\\").replace("|", "\\|").replace("\n", " ")
+
+
+def issue_table(issues):
+    rows = ["| # | Severity | Issue |", "| ---: | --- | --- |"]
+    for index, issue in enumerate(issues, start=1):
+        rows.append("| {} | {} | {} |".format(index, severity_for(issue), markdown_cell(issue)))
+    return "\n".join(rows)
+
+
 def summarize_report(path):
-    # type: (Path) -> Tuple[str, bool]
     lines = normalize_lines(read_report(path))
     if not lines or looks_like_no_issues(lines):
         return "No issues found in this report.", False
 
-    issues = interesting_lines(lines)
+    issues = issue_lines(lines)
     if not issues:
-        issues = lines[:MAX_ISSUES_PER_REPORT]
+        issues = lines
 
-    truncated = len(issues) >= MAX_ISSUES_PER_REPORT
-    body = "\n".join(f"- {line}" for line in issues)
-    if truncated:
-        body += "\n- Report truncated in summary. See the full HTML/text artifact for details."
-    return body, bool(issues)
+    return issue_table(issues), bool(issues)
 
 
 def find_report(report_dir, kind, basename):
@@ -158,7 +163,7 @@ def main() -> int:
 
     print("## ERC and DRC Issues")
     print()
-    print("The summary below is capped for readability. Full HTML/text reports are in the check-report artifacts and on the review site when Pages is published.")
+    print("The summary below lists every detected ERC/DRC issue. Full HTML/text reports are in the check-report artifacts and on the review site when Pages is published.")
     print()
 
     for project in projects:
