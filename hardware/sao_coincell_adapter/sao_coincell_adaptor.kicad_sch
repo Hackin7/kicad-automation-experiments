@@ -527,6 +527,22 @@
 		)
 		(uuid "a19c85ec-bbec-44f9-9672-f61ed115cf38")
 	)
+	(no_connect
+		(at 102.87 76.2)
+		(uuid "0bba183e-20a5-4df7-b2a9-90b327f5e5cc")
+	)
+	(no_connect
+		(at 102.87 78.74)
+		(uuid "d198d1ee-3d4a-4834-8779-cb2a4d45dd25")
+	)
+	(no_connect
+		(at 115.57 76.2)
+		(uuid "5dd23dda-cba5-4903-a2cc-d783402e40f1")
+	)
+	(no_connect
+		(at 115.57 78.74)
+		(uuid "34762522-9f08-4d4c-8135-714a20d43458")
+	)
 	(symbol
 		(lib_id "Device:Battery")
 		(at 109.22 62.23 90)
