@@ -5,15 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Hardware PR Preview</title>
     <link rel="stylesheet" href="../style.css">
+    <script type="module" src="https://kicanvas.org/kicanvas/kicanvas.js"></script>
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   </head>
   <body>
     <header class="topbar">
       <div>
         <p class="eyebrow">KiCad PR review</p>
-        <h1>Hardware PR Preview</h1>
+        <h1 id="preview-title">Hardware PR Preview</h1>
       </div>
       <nav aria-label="Preview navigation">
         <a href="../">Boards</a>
+        <a href="#kicanvas">KiCanvas</a>
+        <a href="#visual-diff">Diff</a>
+        <a href="#model">3D</a>
+        <a href="#reports">Reports</a>
+        <a href="#downloads">Downloads</a>
         <a id="run-link" href="#">Actions run</a>
         <a id="pr-link" href="#">Pull request</a>
       </nav>
@@ -42,17 +49,19 @@
       <section class="section">
         <div class="section-heading">
           <h2>Boards</h2>
-          <p>Select a board to inspect schematic and PCB visual diffs from this pull request run.</p>
+          <p>Select a board from this pull request run.</p>
         </div>
-        <div id="board-tabs" class="tab-row"></div>
+        <div id="board-tabs" class="tab-row" role="tablist" aria-label="Boards"></div>
       </section>
 
-      <section id="preview-content" class="section">
-        <div class="empty-state">
-          <h2>Loading preview</h2>
-          <p>Waiting for PR preview metadata.</p>
-        </div>
-      </section>
+      <div id="preview-content">
+        <section class="section">
+          <div class="empty-state">
+            <h2>Loading preview</h2>
+            <p>Waiting for PR preview metadata.</p>
+          </div>
+        </section>
+      </div>
     </main>
 
     <script>
@@ -72,108 +81,220 @@
         const node = document.getElementById(id);
         if (node && value) node.href = value;
       };
-
-      setText('pr-number', pr ? `#${pr}` : 'unknown');
-      setText('run-number', run || 'unknown');
-
-      if (pr) setHref('pr-link', `https://github.com/${repo}/pull/${pr}`);
-      if (run) setHref('run-link', `https://github.com/${repo}/actions/runs/${run}`);
-
-      const content = document.getElementById('preview-content');
-      const tabs = document.getElementById('board-tabs');
-
       const escapeHtml = (value) => String(value || '')
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;');
+      const assetUrl = (path) => `${rawBase}/${path}`;
 
-      const imageBlock = (title, src, href) => `
-        <article class="preview-panel">
-          <div class="card-head">
-            <h3>${escapeHtml(title)}</h3>
-            <a href="${href || src}">Open</a>
-          </div>
-          <a class="diff-image-link" href="${href || src}">
-            <img class="diff-image" src="${src}" alt="${escapeHtml(title)}">
-          </a>
-        </article>
-      `;
+      setText('pr-number', pr ? `#${pr}` : 'unknown');
+      setText('run-number', run || 'unknown');
+      if (pr) setHref('pr-link', `https://github.com/${repo}/pull/${pr}`);
+      if (run) setHref('run-link', `https://github.com/${repo}/actions/runs/${run}`);
 
-      const artifactLinks = (board) => {
-        const links = [];
-        if (board.artifactUrl) links.push(`<a href="${board.artifactUrl}">Download artifact</a>`);
-        if (board.summaryUrl) links.push(`<a href="${board.summaryUrl}">Summary</a>`);
-        return links.length ? `<div class="pdf-links">${links.join('')}</div>` : '';
+      const content = document.getElementById('preview-content');
+      const boardTabs = document.getElementById('board-tabs');
+
+      const makeLinkList = (items, emptyText) => {
+        const links = (items || []).filter((item) => item && item.href);
+        if (!links.length) {
+          return `<div class="empty-state"><p>${escapeHtml(emptyText)}</p></div>`;
+        }
+        return `<div class="pdf-links">${links.map((item) => `<a href="${assetUrl(item.href)}">${escapeHtml(item.label)}</a>`).join('')}</div>`;
       };
 
-      const renderBoard = (manifest, board) => {
-        const pcb = board.previews?.pcb || [];
-        const schematic = board.previews?.schematic || [];
-        const sections = [];
-
-        if (pcb.length) {
-          sections.push(`
-            <section class="section">
+      const renderDiffSection = (diffItems) => {
+        const items = (diffItems || []).filter((item) => item && item.png);
+        if (!items.length) {
+          return `
+            <section id="visual-diff" class="section">
               <div class="section-heading">
-                <h2>PCB Diff</h2>
-                <p>Combined and per-layer visual differences.</p>
+                <h2>Visual Diff</h2>
+                <p>No visual diff images were published for this board.</p>
               </div>
-              <div class="preview-grid">
-                ${pcb.map((item) => imageBlock(item.label, `${rawBase}/${item.png}`, `${rawBase}/${item.svg || item.png}`)).join('')}
-              </div>
+              <div class="empty-state"><p>Check the visual diff artifact in the Actions run for logs.</p></div>
             </section>
-          `);
+          `;
         }
 
-        if (schematic.length) {
-          sections.push(`
-            <section class="section">
-              <div class="section-heading">
-                <h2>Schematic Diff</h2>
-                <p>Rendered schematic differences.</p>
-              </div>
-              <div class="preview-grid">
-                ${schematic.map((item) => imageBlock(item.label, `${rawBase}/${item.png}`, `${rawBase}/${item.svg || item.png}`)).join('')}
-              </div>
-            </section>
-          `);
-        }
+        const first = items[0];
+        const buttons = items.map((item, index) => `
+          <button
+            type="button"
+            class="tab-button${index === 0 ? ' is-active' : ''}"
+            data-diff-index="${index}">
+            ${escapeHtml(item.label || `Diff ${index + 1}`)}
+          </button>
+        `).join('');
 
-        content.innerHTML = `
-          <section class="section">
+        return `
+          <section id="visual-diff" class="section visual-diff-section">
             <div class="section-heading">
-              <h2>${escapeHtml(board.name)}</h2>
-              <p>${escapeHtml(board.slug)}</p>
+              <h2>Visual Diff</h2>
+              <p>Schematic and PCB changes compared with the pull request base commit.</p>
             </div>
-            ${artifactLinks(board)}
+            <div id="diff-tabs" class="tab-row" role="tablist" aria-label="Visual diff views">${buttons}</div>
+            <article class="preview-panel">
+              <div class="card-head">
+                <h3 id="diff-title">${escapeHtml(first.label || 'Visual diff')}</h3>
+                <a id="diff-open-link" href="${assetUrl(first.svg || first.png)}">Open full SVG</a>
+              </div>
+              <a id="diff-image-link" class="diff-image-link" href="${assetUrl(first.svg || first.png)}">
+                <img id="diff-image" class="diff-image" src="${assetUrl(first.png)}" alt="${escapeHtml(first.label || 'Visual diff')}">
+              </a>
+            </article>
           </section>
-          ${sections.join('') || '<div class="empty-state"><h2>No previews found</h2><p>This board did not publish preview images for the selected run.</p></div>'}
         `;
       };
 
+      const bindDiffTabs = (diffItems) => {
+        const items = (diffItems || []).filter((item) => item && item.png);
+        const tabs = document.getElementById('diff-tabs');
+        const title = document.getElementById('diff-title');
+        const openLink = document.getElementById('diff-open-link');
+        const imageLink = document.getElementById('diff-image-link');
+        const image = document.getElementById('diff-image');
+        if (!tabs || !items.length) return;
+
+        tabs.querySelectorAll('[data-diff-index]').forEach((button) => {
+          button.addEventListener('click', () => {
+            const item = items[Number(button.dataset.diffIndex)];
+            const target = item.svg || item.png;
+            tabs.querySelectorAll('.tab-button').forEach((node) => node.classList.remove('is-active'));
+            button.classList.add('is-active');
+            title.textContent = item.label || 'Visual diff';
+            openLink.href = assetUrl(target);
+            imageLink.href = assetUrl(target);
+            image.src = assetUrl(item.png);
+            image.alt = item.label || 'Visual diff';
+          });
+        });
+      };
+
+      const renderModel = (board) => {
+        if (board.model?.glb) {
+          return `
+            <model-viewer
+              src="${assetUrl(board.model.glb)}"
+              ${board.model.poster ? `poster="${assetUrl(board.model.poster)}"` : ''}
+              camera-controls
+              auto-rotate
+              shadow-intensity="0.8"
+              aria-label="Interactive 3D PCB model">
+            </model-viewer>
+            <p class="model-actions"><a href="${assetUrl(board.model.glb)}">Download GLB</a></p>
+          `;
+        }
+        return `
+          <div class="model-fallback">
+            <h3>No browser-viewable 3D model in this run</h3>
+            <p>The PR preview did not publish a GLB model for this board.</p>
+          </div>
+        `;
+      };
+
+      const renderBoard = (manifest, board) => {
+        document.title = `${board.name} PR Preview`;
+        setText('preview-title', board.name);
+
+        const projectSource = board.kicad?.project ? assetUrl(board.kicad.project) : '';
+        const schematicSource = board.kicad?.schematic ? assetUrl(board.kicad.schematic) : '';
+        const boardSource = board.kicad?.board ? assetUrl(board.kicad.board) : '';
+        const erc = board.reports?.erc ? assetUrl(board.reports.erc) : '';
+        const drc = board.reports?.drc ? assetUrl(board.reports.drc) : '';
+
+        content.innerHTML = `
+          <section id="kicanvas" class="section">
+            <div class="section-heading">
+              <h2>KiCanvas</h2>
+              <p>Interactive schematic and PCB view from the pull request source files.</p>
+            </div>
+            <div class="viewer-shell">
+              <kicanvas-embed controls="full">
+                ${projectSource ? `<kicanvas-source src="${projectSource}"></kicanvas-source>` : ''}
+                ${schematicSource ? `<kicanvas-source src="${schematicSource}"></kicanvas-source>` : ''}
+                ${boardSource ? `<kicanvas-source src="${boardSource}"></kicanvas-source>` : ''}
+              </kicanvas-embed>
+            </div>
+          </section>
+
+          ${renderDiffSection(board.diff)}
+
+          <section id="model" class="section">
+            <div class="section-heading">
+              <h2>3D Model</h2>
+              <p>Browser model viewer output from this pull request run.</p>
+            </div>
+            ${renderModel(board)}
+          </section>
+
+          <section id="reports" class="section">
+            <div class="section-heading">
+              <h2>ERC and DRC Reports</h2>
+              <p>Generated by KiBot for the pull request head.</p>
+            </div>
+            <div class="report-grid">
+              <article>
+                <div class="card-head">
+                  <h3>ERC</h3>
+                  ${erc ? `<a href="${erc}">Open full report</a>` : '<span>Unavailable</span>'}
+                </div>
+                ${erc ? `<iframe title="ERC report" src="${erc}"></iframe>` : '<div class="empty-state"><p>No ERC report was published for this board.</p></div>'}
+              </article>
+              <article>
+                <div class="card-head">
+                  <h3>DRC</h3>
+                  ${drc ? `<a href="${drc}">Open full report</a>` : '<span>Unavailable</span>'}
+                </div>
+                ${drc ? `<iframe title="DRC report" src="${drc}"></iframe>` : '<div class="empty-state"><p>No DRC report was published for this board.</p></div>'}
+              </article>
+            </div>
+          </section>
+
+          <section id="downloads" class="section">
+            <div class="section-heading">
+              <h2>Downloads</h2>
+              <p>Fabrication and assembly files from this pull request run.</p>
+            </div>
+            ${makeLinkList(board.downloads, 'No fabrication downloads were published for this board.')}
+          </section>
+
+          <section id="pdfs" class="section section-compact">
+            <div class="section-heading">
+              <h2>PDFs</h2>
+              <p>Schematic and PCB layer plots from KiBot.</p>
+            </div>
+            ${makeLinkList(board.pdfs, 'No PDF plots were published for this board.')}
+          </section>
+        `;
+        bindDiffTabs(board.diff);
+      };
+
       const renderTabs = (manifest) => {
-        tabs.innerHTML = '';
+        boardTabs.innerHTML = '';
         manifest.boards.forEach((board, index) => {
           const button = document.createElement('button');
           button.type = 'button';
           button.className = `tab-button${index === 0 ? ' is-active' : ''}`;
           button.textContent = board.name;
           button.addEventListener('click', () => {
-            tabs.querySelectorAll('.tab-button').forEach((node) => node.classList.remove('is-active'));
+            boardTabs.querySelectorAll('.tab-button').forEach((node) => node.classList.remove('is-active'));
             button.classList.add('is-active');
             renderBoard(manifest, board);
           });
-          tabs.appendChild(button);
+          boardTabs.appendChild(button);
         });
       };
 
       const fail = (message) => {
         content.innerHTML = `
-          <div class="empty-state">
-            <h2>Preview unavailable</h2>
-            <p>${escapeHtml(message)}</p>
-          </div>
+          <section class="section">
+            <div class="empty-state">
+              <h2>Preview unavailable</h2>
+              <p>${escapeHtml(message)}</p>
+            </div>
+          </section>
         `;
       };
 

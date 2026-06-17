@@ -67,6 +67,11 @@ nav a {
   text-decoration: none;
 }
 
+nav a[hidden],
+.visual-diff-section[hidden] {
+  display: none;
+}
+
 main {
   padding: 24px clamp(16px, 5vw, 64px) 56px;
 }
@@ -283,11 +288,6 @@ model-viewer {
   text-decoration: none;
 }
 
-.preview-main {
-  width: auto;
-  max-width: 1440px;
-}
-
 .preview-status {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -296,6 +296,7 @@ model-viewer {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-bottom: 12px;
 }
 
 .tab-button {

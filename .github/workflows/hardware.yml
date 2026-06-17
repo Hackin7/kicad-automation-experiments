@@ -62,7 +62,7 @@ jobs:
 
       - name: Upload ERC and DRC reports
         if: ${{ always() }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.slug }}-check-reports
           path: ${{ matrix.dir }}/output/checks
@@ -101,7 +101,7 @@ jobs:
 
       - name: Upload generated hardware outputs
         if: ${{ always() }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.slug }}-hardware-outputs
           path: ${{ matrix.dir }}/output/generated
@@ -209,7 +209,7 @@ jobs:
 
       - name: Upload 3D model outputs
         if: ${{ always() }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.slug }}-3d-model
           path: hardware-3d-artifacts/${{ matrix.slug }}
@@ -239,7 +239,7 @@ jobs:
           enablement: true
 
       - name: Download hardware artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           path: artifacts
@@ -424,7 +424,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Download ERC and DRC report artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           pattern: "*-check-reports"
