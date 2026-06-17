@@ -214,6 +214,7 @@ jobs:
             fi
           done
 
+          preview_width=4800
           preview_count=0
           mkdir -p "$out_root/preview/pcb" "$out_root/preview/schematic"
 
@@ -221,7 +222,7 @@ jobs:
             local input_svg="$1"
             local output_png="$2"
             mkdir -p "$(dirname "$output_png")"
-            rsvg-convert -w 1800 "$input_svg" -o "$output_png"
+            rsvg-convert -w "$preview_width" "$input_svg" -o "$output_png"
             convert "$output_png" -strip "$output_png"
             preview_count=$((preview_count + 1))
           }
@@ -230,14 +231,11 @@ jobs:
             render_preview_png "$out_root/diff/pcb/All_Layers.svg" "$out_root/preview/pcb/All_Layers.png"
           fi
 
-          if [ -f "$out_root/diff/schematic/$basename.svg" ]; then
-            render_preview_png "$out_root/diff/schematic/$basename.svg" "$out_root/preview/schematic/$basename.png"
-          else
-            schematic_preview_svg="$(find "$out_root/diff/schematic" -maxdepth 1 -type f -name '*.svg' -print | sort | head -n 1 || true)"
-            if [ -n "$schematic_preview_svg" ]; then
-              render_preview_png "$schematic_preview_svg" "$out_root/preview/schematic/$basename.png"
-            fi
-          fi
+          for schematic_preview_svg in "$out_root/diff/schematic"/*.svg; do
+            [ -f "$schematic_preview_svg" ] || continue
+            schematic_preview_name="$(basename "$schematic_preview_svg" .svg)"
+            render_preview_png "$schematic_preview_svg" "$out_root/preview/schematic/$schematic_preview_name.png"
+          done
 
           {
             if [ "$generated" -eq 0 ]; then
@@ -248,7 +246,7 @@ jobs:
               echo "Compared base \`${BASE_SHA:0:12}\` to head \`${HEAD_SHA:0:12}\`."
               echo
               echo "Generated $generated visual diff SVG file(s)."
-              echo "Generated $preview_count PNG preview file(s)."
+              echo "Generated $preview_count PNG preview file(s) at ${preview_width}px wide."
               echo
               echo "## Diff Files"
               echo
@@ -270,10 +268,13 @@ jobs:
                 echo "![Combined PCB diff](preview/pcb/All_Layers.png)"
                 echo
               fi
-              if [ -f "$out_root/preview/schematic/$basename.png" ]; then
-                echo "![Schematic diff](preview/schematic/$basename.png)"
+              for schematic_preview_png in "$out_root/preview/schematic"/*.png; do
+                [ -f "$schematic_preview_png" ] || continue
+                schematic_rel="${schematic_preview_png#$out_root/}"
+                schematic_label="$(basename "$schematic_preview_png" .png)"
+                echo "![Schematic diff: $schematic_label]($schematic_rel)"
                 echo
-              fi
+              done
             } >> "$out_root/SUMMARY.md"
           fi
 
@@ -295,6 +296,8 @@ jobs:
       contents: write
     outputs:
       raw_base: ${{ steps.publish.outputs.raw_base }}
+      preview_branch: ${{ steps.publish.outputs.preview_branch }}
+      preview_root: ${{ steps.publish.outputs.preview_root }}
 
     steps:
       - name: Download visual diff artifacts
@@ -316,6 +319,8 @@ jobs:
           preview_root="pr-${PR_NUMBER}/run-${GITHUB_RUN_ID}"
           raw_base="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${preview_branch}/${preview_root}"
           echo "raw_base=${raw_base}" >> "$GITHUB_OUTPUT"
+          echo "preview_branch=${preview_branch}" >> "$GITHUB_OUTPUT"
+          echo "preview_root=${preview_root}" >> "$GITHUB_OUTPUT"
 
           mkdir -p publish
           cd publish
@@ -382,6 +387,8 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           RAW_PREVIEW_BASE: ${{ needs.publish-previews.outputs.raw_base }}
+          PREVIEW_BRANCH: ${{ needs.publish-previews.outputs.preview_branch }}
+          PREVIEW_ROOT: ${{ needs.publish-previews.outputs.preview_root }}
         run: |
           set -euo pipefail
 
@@ -422,13 +429,25 @@ jobs:
               echo "$PROJECTS_JSON" | jq -c '.[]' | while read -r project; do
                 slug="$(echo "$project" | jq -r '.slug')"
                 name="$(echo "$project" | jq -r '.name')"
-                basename="$(echo "$project" | jq -r '.basename')"
                 echo
                 echo "### $name"
                 echo
                 echo "![${name} combined PCB diff](${RAW_PREVIEW_BASE}/${slug}/pcb/All_Layers.png)"
                 echo
-                echo "![${name} schematic diff](${RAW_PREVIEW_BASE}/${slug}/schematic/${basename}.png)"
+                schematic_api_path="repos/${GITHUB_REPOSITORY}/contents/${PREVIEW_ROOT}/${slug}/schematic?ref=${PREVIEW_BRANCH}"
+                schematic_names="$(gh api "$schematic_api_path" --jq '.[]? | select(.type == "file" and (.name | endswith(".png"))) | .name' 2>/dev/null || true)"
+                if [ -n "$schematic_names" ]; then
+                  echo "$schematic_names" | while read -r schematic_name; do
+                    [ -n "$schematic_name" ] || continue
+                    encoded_schematic_name="$(printf '%s' "$schematic_name" | jq -sRr @uri)"
+                    schematic_label="${schematic_name%.png}"
+                    echo "![${name} schematic diff: ${schematic_label}](${RAW_PREVIEW_BASE}/${slug}/schematic/${encoded_schematic_name})"
+                    echo
+                  done
+                else
+                  echo "_No schematic preview PNGs were published for this board._"
+                  echo
+                fi
               done
             fi
             echo
