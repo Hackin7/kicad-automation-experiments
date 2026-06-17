@@ -10,5 +10,17 @@
     "checks_config": "checks.kibot.yaml",
     "outputs_config": "outputs.kibot.yaml",
     "model_config": "3d.kibot.yaml"
+  },
+  {
+    "slug": "simple-led-board",
+    "name": "Simple LED Board",
+    "dir": "hardware/simple_led_board",
+    "project": "simple_led_board.kicad_pro",
+    "schematic": "simple_led_board.kicad_sch",
+    "board": "simple_led_board.kicad_pcb",
+    "basename": "simple_led_board",
+    "checks_config": "checks.kibot.yaml",
+    "outputs_config": "outputs.kibot.yaml",
+    "model_config": "3d.kibot.yaml"
   }
 ]

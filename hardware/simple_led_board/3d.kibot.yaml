@@ -1,0 +1,10 @@
+kibot:
+  version: 1
+
+outputs:
+  - name: board_vrml
+    comment: "VRML 3D model for browser-viewable conversion"
+    type: vrml
+    dir: model
+    options:
+      output: "%f.%x"

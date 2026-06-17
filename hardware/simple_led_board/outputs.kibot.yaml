@@ -1,0 +1,218 @@
+kibot:
+  version: 1
+
+outputs:
+  - name: schematic_pdf
+    comment: "Schematic PDF for design review"
+    type: pdf_sch_print
+    dir: pdf
+    options:
+      output: "%f-schematic.%x"
+
+  - name: pcb_pdf
+    comment: "PCB PDF plots for design review"
+    type: pdf
+    dir: pdf
+    options:
+      output: "%f-pcb-%i.%x"
+      plot_sheet_reference: false
+      plot_footprint_refs: true
+      plot_footprint_values: true
+      force_plot_invisible_refs_vals: false
+      exclude_edge_layer: false
+    layers:
+      - layer: F.Cu
+        suffix: front-copper
+        description: Front copper
+      - layer: B.Cu
+        suffix: back-copper
+        description: Back copper
+      - layer: F.SilkS
+        suffix: front-silkscreen
+        description: Front silkscreen
+      - layer: B.SilkS
+        suffix: back-silkscreen
+        description: Back silkscreen
+      - layer: F.Mask
+        suffix: front-mask
+        description: Front solder mask
+      - layer: B.Mask
+        suffix: back-mask
+        description: Back solder mask
+      - layer: Edge.Cuts
+        suffix: edge-cuts
+        description: Board outline
+      - layer: F.Fab
+        suffix: front-fab
+        description: Front fabrication
+      - layer: B.Fab
+        suffix: back-fab
+        description: Back fabrication
+
+  - name: generic_bom
+    comment: "Generic CSV bill of materials"
+    type: bom
+    dir: bom
+    options:
+      output: "%f-generic-bom.%x"
+      ref_separator: ","
+      columns:
+        - field: References
+          name: Reference
+        - field: "Quantity Per PCB"
+          name: Qty
+        - field: Value
+          name: Value
+        - field: Footprint
+          name: Footprint
+        - field: Datasheet
+          name: Datasheet
+        - field: DNP
+          name: DNP
+        - field: "Exclude from BOM"
+          name: Exclude from BOM
+      csv:
+        hide_pcb_info: true
+        hide_stats_info: true
+
+  - name: generic_gerbers
+    comment: "Generic Gerber files"
+    type: gerber
+    dir: fab/generic-gerbers
+    options: &generic_gerber_options
+      exclude_edge_layer: true
+      exclude_pads_from_silkscreen: true
+      plot_sheet_reference: false
+      plot_footprint_refs: true
+      plot_footprint_values: false
+      force_plot_invisible_refs_vals: false
+      tent_vias: true
+      use_protel_extensions: false
+      create_gerber_job_file: true
+      disable_aperture_macros: false
+      use_gerber_x2_attributes: true
+      use_gerber_net_attributes: true
+      line_width: 0.1
+      subtract_mask_from_silk: true
+    layers: &fab_layers
+      - F.Cu
+      - B.Cu
+      - F.Paste
+      - B.Paste
+      - F.SilkS
+      - B.SilkS
+      - F.Mask
+      - B.Mask
+      - Edge.Cuts
+
+  - name: generic_drill
+    comment: "Generic Excellon drill files"
+    type: excellon
+    dir: fab/generic-drill
+    options:
+      pth_and_npth_single_file: false
+      metric_units: true
+
+  - name: generic_fab_zip
+    comment: "Generic Gerber and drill fabrication package"
+    type: compress
+    dir: fab
+    options:
+      output: "%f-generic-fab.%x"
+      files:
+        - from_output: generic_gerbers
+          dest: generic-gerbers
+        - from_output: generic_drill
+          dest: generic-drill
+
+  - name: jlcpcb_gerbers
+    comment: "JLCPCB-compatible Gerber files"
+    type: gerber
+    dir: jlcpcb/gerbers
+    options:
+      <<: *generic_gerber_options
+      use_protel_extensions: true
+      create_gerber_job_file: false
+      disable_aperture_macros: true
+      use_gerber_x2_attributes: false
+      use_gerber_net_attributes: false
+      gerber_precision: 4.6
+    layers: *fab_layers
+
+  - name: jlcpcb_drill
+    comment: "JLCPCB-compatible Excellon drill files"
+    type: excellon
+    dir: jlcpcb/drill
+    options:
+      pth_and_npth_single_file: false
+      pth_id: "-PTH"
+      npth_id: "-NPTH"
+      metric_units: false
+      output: "%f%i.%x"
+
+  - name: jlcpcb_fab_zip
+    comment: "JLCPCB Gerber and drill fabrication package"
+    type: compress
+    dir: jlcpcb
+    options:
+      output: "%f-jlcpcb-gerbers.%x"
+      files:
+        - from_output: jlcpcb_gerbers
+          dest: /
+        - from_output: jlcpcb_drill
+          dest: /
+
+  - name: jlcpcb_bom
+    comment: "JLCPCB/LCSC assembly BOM"
+    type: bom
+    dir: jlcpcb
+    options:
+      output: "%f-jlcpcb-bom.%x"
+      ref_separator: ","
+      columns:
+        - field: Value
+          name: Comment
+        - field: References
+          name: Designator
+        - field: Footprint
+          name: Footprint
+        - field: LCSC
+          name: LCSC Part Number
+        - field: "Quantity Per PCB"
+          name: QTY
+      csv:
+        hide_pcb_info: true
+        hide_stats_info: true
+        quote_all: true
+
+  - name: jlcpcb_position
+    comment: "JLCPCB component placement file"
+    type: position
+    dir: jlcpcb
+    options:
+      output: "%f-jlcpcb-cpl.%x"
+      format: CSV
+      units: millimeters
+      separate_files_for_front_and_back: false
+      only_smd: true
+      columns:
+        - id: Ref
+          name: Designator
+        - Val
+        - Package
+        - id: PosX
+          name: Mid X
+        - id: PosY
+          name: Mid Y
+        - id: Rot
+          name: Rotation
+        - id: Side
+          name: Layer
+
+  - name: interactive_bom
+    comment: "Interactive HTML BOM"
+    type: ibom
+    dir: ibom
+    options:
+      name_format: index
+      dark_mode: true
