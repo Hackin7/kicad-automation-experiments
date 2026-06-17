@@ -95,6 +95,7 @@
 
       const content = document.getElementById('preview-content');
       const boardTabs = document.getElementById('board-tabs');
+      let projectRegistry = [];
 
       const makeLinkList = (items, emptyText) => {
         const links = (items || []).filter((item) => item && item.href);
@@ -210,13 +211,54 @@
         `;
       };
 
+      const getKicadSources = (manifest, board) => {
+        if (board.kicad?.project || board.kicad?.schematic || board.kicad?.board) {
+          return {
+            project: board.kicad?.project ? assetUrl(board.kicad.project) : '',
+            schematic: board.kicad?.schematic ? assetUrl(board.kicad.schematic) : '',
+            board: board.kicad?.board ? assetUrl(board.kicad.board) : '',
+          };
+        }
+
+        const project = projectRegistry.find((item) => item.slug === board.slug);
+        if (!project || !manifest.headSha) {
+          return { project: '', schematic: '', board: '' };
+        }
+
+        const sourceBase = `https://raw.githubusercontent.com/${repo}/${manifest.headSha}`;
+        return {
+          project: `${sourceBase}/${project.dir}/${project.project}`,
+          schematic: `${sourceBase}/${project.dir}/${project.schematic}`,
+          board: `${sourceBase}/${project.dir}/${project.board}`,
+        };
+      };
+
+      const renderKicanvas = (sources) => {
+        if (!sources.project && !sources.schematic && !sources.board) {
+          return `
+            <div class="empty-state">
+              <h3>KiCanvas source files unavailable</h3>
+              <p>This preview run did not publish KiCad source paths, and the board could not be matched to the project registry.</p>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="viewer-shell">
+            <kicanvas-embed controls="full">
+              ${sources.project ? `<kicanvas-source src="${sources.project}"></kicanvas-source>` : ''}
+              ${sources.schematic ? `<kicanvas-source src="${sources.schematic}"></kicanvas-source>` : ''}
+              ${sources.board ? `<kicanvas-source src="${sources.board}"></kicanvas-source>` : ''}
+            </kicanvas-embed>
+          </div>
+        `;
+      };
+
       const renderBoard = (manifest, board) => {
         document.title = `${board.name} PR Preview`;
         setText('preview-title', board.name);
 
-        const projectSource = board.kicad?.project ? assetUrl(board.kicad.project) : '';
-        const schematicSource = board.kicad?.schematic ? assetUrl(board.kicad.schematic) : '';
-        const boardSource = board.kicad?.board ? assetUrl(board.kicad.board) : '';
+        const kicadSources = getKicadSources(manifest, board);
         const erc = board.reports?.erc ? assetUrl(board.reports.erc) : '';
         const drc = board.reports?.drc ? assetUrl(board.reports.drc) : '';
         const diffItems = normalizeDiffItems(board);
@@ -227,13 +269,7 @@
               <h2>KiCanvas</h2>
               <p>Interactive schematic and PCB view from the pull request source files.</p>
             </div>
-            <div class="viewer-shell">
-              <kicanvas-embed controls="full">
-                ${projectSource ? `<kicanvas-source src="${projectSource}"></kicanvas-source>` : ''}
-                ${schematicSource ? `<kicanvas-source src="${schematicSource}"></kicanvas-source>` : ''}
-                ${boardSource ? `<kicanvas-source src="${boardSource}"></kicanvas-source>` : ''}
-              </kicanvas-embed>
-            </div>
+            ${renderKicanvas(kicadSources)}
           </section>
 
           ${renderDiffSection(diffItems)}
@@ -318,12 +354,17 @@
       if (!previewRoot) {
         fail('Missing pr and run query parameters.');
       } else {
-        fetch(`${rawBase}/manifest.json`, { cache: 'no-store' })
-          .then((response) => {
+        Promise.all([
+          fetch(`${rawBase}/manifest.json`, { cache: 'no-store' }).then((response) => {
             if (!response.ok) throw new Error(`manifest fetch failed with ${response.status}`);
             return response.json();
-          })
-          .then((manifest) => {
+          }),
+          fetch(`https://raw.githubusercontent.com/${repo}/main/.github/hardware/projects.json`, { cache: 'no-store' })
+            .then((response) => response.ok ? response.json() : [])
+            .catch(() => []),
+        ])
+          .then(([manifest, projects]) => {
+            projectRegistry = Array.isArray(projects) ? projects : [];
             setText('base-sha', manifest.baseSha ? manifest.baseSha.slice(0, 12) : 'unknown');
             setText('head-sha', manifest.headSha ? manifest.headSha.slice(0, 12) : 'unknown');
             if (!manifest.boards || !manifest.boards.length) {
