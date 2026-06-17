@@ -9,7 +9,7 @@ on:
 
 permissions:
   actions: read
-  contents: read
+  contents: write
   issues: write
   pull-requests: write
 
@@ -74,6 +74,7 @@ jobs:
           project_dir='${{ matrix.dir }}'
           schematic_file='${{ matrix.schematic }}'
           board_file='${{ matrix.board }}'
+          basename='${{ matrix.basename }}'
 
           out_root="visual-diff-output/$project_slug"
           work_root="visual-diff-work/$project_slug"
@@ -213,6 +214,31 @@ jobs:
             fi
           done
 
+          preview_count=0
+          mkdir -p "$out_root/preview/pcb" "$out_root/preview/schematic"
+
+          render_preview_png() {
+            local input_svg="$1"
+            local output_png="$2"
+            mkdir -p "$(dirname "$output_png")"
+            rsvg-convert -w 1800 "$input_svg" -o "$output_png"
+            convert "$output_png" -strip "$output_png"
+            preview_count=$((preview_count + 1))
+          }
+
+          if [ -f "$out_root/diff/pcb/All_Layers.svg" ]; then
+            render_preview_png "$out_root/diff/pcb/All_Layers.svg" "$out_root/preview/pcb/All_Layers.png"
+          fi
+
+          if [ -f "$out_root/diff/schematic/$basename.svg" ]; then
+            render_preview_png "$out_root/diff/schematic/$basename.svg" "$out_root/preview/schematic/$basename.png"
+          else
+            schematic_preview_svg="$(find "$out_root/diff/schematic" -maxdepth 1 -type f -name '*.svg' -print | sort | head -n 1 || true)"
+            if [ -n "$schematic_preview_svg" ]; then
+              render_preview_png "$schematic_preview_svg" "$out_root/preview/schematic/$basename.png"
+            fi
+          fi
+
           {
             if [ "$generated" -eq 0 ]; then
               echo "Compared base \`${BASE_SHA:0:12}\` to head \`${HEAD_SHA:0:12}\`."
@@ -222,6 +248,7 @@ jobs:
               echo "Compared base \`${BASE_SHA:0:12}\` to head \`${HEAD_SHA:0:12}\`."
               echo
               echo "Generated $generated visual diff SVG file(s)."
+              echo "Generated $preview_count PNG preview file(s)."
               echo
               echo "## Diff Files"
               echo
@@ -239,14 +266,12 @@ jobs:
               echo
               echo "## Embedded Preview"
               echo
-              if [ -f "$out_root/diff/pcb/All_Layers.svg" ]; then
-                echo "![Combined PCB diff](diff/pcb/All_Layers.svg)"
+              if [ -f "$out_root/preview/pcb/All_Layers.png" ]; then
+                echo "![Combined PCB diff](preview/pcb/All_Layers.png)"
                 echo
               fi
-              schematic_preview="$(find "$out_root/diff/schematic" -maxdepth 1 -type f -name '*.svg' -print | sort | head -n 1 || true)"
-              if [ -n "$schematic_preview" ]; then
-                schematic_rel="${schematic_preview#$out_root/}"
-                echo "![Schematic diff]($schematic_rel)"
+              if [ -f "$out_root/preview/schematic/$basename.png" ]; then
+                echo "![Schematic diff](preview/schematic/$basename.png)"
                 echo
               fi
             } >> "$out_root/SUMMARY.md"
@@ -259,12 +284,92 @@ jobs:
           path: visual-diff-output/${{ matrix.slug }}
           if-no-files-found: warn
 
+  publish-previews:
+    name: Publish PR preview images
+    runs-on: ubuntu-latest
+    needs:
+      - project-matrix
+      - visual-diff
+    if: ${{ always() && github.event_name == 'pull_request' }}
+    permissions:
+      contents: write
+    outputs:
+      raw_base: ${{ steps.publish.outputs.raw_base }}
+
+    steps:
+      - name: Download visual diff artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-pr-visual-diff"
+          path: artifacts
+
+      - name: Publish PNG previews to preview branch
+        id: publish
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          preview_branch="pr-diff-previews"
+          preview_root="pr-${PR_NUMBER}/run-${GITHUB_RUN_ID}"
+          raw_base="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${preview_branch}/${preview_root}"
+          echo "raw_base=${raw_base}" >> "$GITHUB_OUTPUT"
+
+          mkdir -p publish
+          cd publish
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          if git fetch --depth=1 origin "$preview_branch"; then
+            git checkout -B "$preview_branch" FETCH_HEAD
+          else
+            git checkout --orphan "$preview_branch"
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+
+          mkdir -p "$preview_root"
+          copied=0
+          for artifact_dir in ../artifacts/*-pr-visual-diff; do
+            [ -d "$artifact_dir" ] || continue
+            artifact_name="$(basename "$artifact_dir")"
+            slug="${artifact_name%-pr-visual-diff}"
+            if [ -f "$artifact_dir/preview/pcb/All_Layers.png" ]; then
+              mkdir -p "$preview_root/$slug/pcb"
+              cp "$artifact_dir/preview/pcb/All_Layers.png" "$preview_root/$slug/pcb/All_Layers.png"
+              copied=$((copied + 1))
+            fi
+            if [ -d "$artifact_dir/preview/schematic" ]; then
+              mkdir -p "$preview_root/$slug/schematic"
+              find "$artifact_dir/preview/schematic" -maxdepth 1 -type f -name '*.png' -exec cp {} "$preview_root/$slug/schematic/" \;
+              copied=$((copied + 1))
+            fi
+          done
+
+          if [ "$copied" -eq 0 ]; then
+            echo "No PNG previews were found to publish."
+            exit 0
+          fi
+
+          git add "$preview_root"
+          if git diff --cached --quiet; then
+            echo "No preview image changes to publish."
+            exit 0
+          fi
+
+          git commit -m "Publish PR ${PR_NUMBER} hardware diff previews for run ${GITHUB_RUN_ID}"
+          git push origin "$preview_branch"
+
   comment-pr:
     name: Comment on pull request
     runs-on: ubuntu-latest
     needs:
       - project-matrix
       - visual-diff
+      - publish-previews
     if: ${{ always() && github.event_name == 'pull_request' }}
 
     steps:
@@ -276,6 +381,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RAW_PREVIEW_BASE: ${{ needs.publish-previews.outputs.raw_base }}
         run: |
           set -euo pipefail
 
@@ -289,6 +395,12 @@ jobs:
             echo "## Hardware Visual Diff"
             echo
             echo "Compared base \`${BASE_SHA:0:12}\` to head \`${HEAD_SHA:0:12}\`."
+            echo
+            if [ -n "${RAW_PREVIEW_BASE:-}" ]; then
+              echo "PNG previews are embedded below. Full SVGs and source exports are in the artifacts."
+            else
+              echo "PNG previews were not published for this run. Full SVGs and source exports are in the artifacts."
+            fi
             echo
             echo "| Board | Visual diff artifact |"
             echo "| --- | --- |"
@@ -304,6 +416,21 @@ jobs:
                 printf '| %s | Artifact not available; check the run logs. |\n' "$name"
               fi
             done
+            if [ -n "${RAW_PREVIEW_BASE:-}" ]; then
+              echo
+              echo "## Preview Images"
+              echo "$PROJECTS_JSON" | jq -c '.[]' | while read -r project; do
+                slug="$(echo "$project" | jq -r '.slug')"
+                name="$(echo "$project" | jq -r '.name')"
+                basename="$(echo "$project" | jq -r '.basename')"
+                echo
+                echo "### $name"
+                echo
+                echo "![${name} combined PCB diff](${RAW_PREVIEW_BASE}/${slug}/pcb/All_Layers.png)"
+                echo
+                echo "![${name} schematic diff](${RAW_PREVIEW_BASE}/${slug}/schematic/${basename}.png)"
+              done
+            fi
             echo
             echo "Run: [${GITHUB_RUN_ID}](${run_url})"
             echo
