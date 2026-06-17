@@ -6,8 +6,32 @@ This repository is set up to test GitHub Actions automation for KiCad hardware p
 
 Two hardware workflows are configured:
 
-- **Hardware CI** (`.github/workflows/hardware.yml`) runs on hardware and CI config changes. It runs KiBot ERC/DRC checks, generates schematic and PCB PDFs, BOMs, fabrication packages, JLCPCB outputs, 3D model artifacts, a GitHub Actions summary, and a GitHub Pages review site.
-- **Hardware PR Visual Diff** (`.github/workflows/hardware-pr-diff.yml`) runs on pull requests. It compares KiCad schematic and PCB renders against the base branch and comments on the PR with links to the visual diff artifacts.
+- **Hardware CI** (`.github/workflows/hardware.yml`) runs on hardware and CI config changes.
+- **Hardware PR Visual Diff** (`.github/workflows/hardware-pr-diff.yml`) runs on pull requests.
+
+## Checks And Outputs
+
+- **ERC**: schematic electrical rules.
+- **DRC**: PCB design rules.
+- **Zone fill check**: verifies filled copper zones.
+- **Schematic PDF**: review copy of the schematic.
+- **PCB layer PDFs**: review plots for board layers.
+- **BOMs**: generic and JLCPCB CSV outputs.
+- **Fabrication files**: Gerbers, drills, and zip packages.
+- **3D model**: browser-viewable board model when export works.
+- **GitHub Pages site**: per-board review pages.
+- **PR visual diff**: schematic and PCB image diffs against the base branch.
+- **PR bot comment**: links to visual diff artifacts.
+
+## Repo Layout
+
+- `.github/workflows/`: GitHub Actions workflows.
+- `.github/hardware/projects.json`: board registry used by CI.
+- `.github/hardware/site/`: GitHub Pages review-site template and styles.
+- `.github/hardware/3d/`: 3D conversion helper scripts.
+- `.github/hardware/report_summary.py`: ERC/DRC summary formatter.
+- `hardware/`: KiCad project source files.
+- `docs/`: project notes and documentation.
 
 The board registry lives at `.github/hardware/projects.json`. Add a board under `hardware/`, then add an entry to that registry so both workflows include it.
 
