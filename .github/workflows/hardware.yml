@@ -35,7 +35,6 @@ jobs:
           schema: ${{ env.SCHEMATIC_FILE }}
           board: ${{ env.BOARD_FILE }}
           dir: ${{ env.HARDWARE_DIR }}/output/checks
-          targets: NONE
 
       - name: Upload ERC and DRC reports
         if: ${{ always() }}
