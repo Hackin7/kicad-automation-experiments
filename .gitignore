@@ -25,3 +25,4 @@ hardware/**/output/
 hardware/**/outputs/
 hardware/**/build/
 hardware/**/Fabrication/
+site/
