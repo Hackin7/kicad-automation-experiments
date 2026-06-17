@@ -89,6 +89,10 @@ jobs:
       - hardware-checks
       - hardware-outputs
     if: ${{ always() }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -96,6 +100,8 @@ jobs:
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Download ERC and DRC reports
         uses: actions/download-artifact@v4
