@@ -147,7 +147,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          model_dir="${{ matrix.dir }}/output/3d-model/model"
+          model_dir="hardware-3d-artifacts/${{ matrix.slug }}/model"
           mkdir -p "$model_dir"
 
           vrml_path="$(find "${{ matrix.dir }}/output/3d-source" \( -iname '*.wrl' -o -iname '*.vrml' \) -print 2>/dev/null | head -n 1 || true)"
@@ -175,7 +175,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          model_dir="${{ matrix.dir }}/output/3d-model/model"
+          model_dir="hardware-3d-artifacts/${{ matrix.slug }}/model"
           mkdir -p "$model_dir"
 
           blender --background --python tools/hardware-3d/convert_vrml_to_glb.py -- \
@@ -188,7 +188,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.slug }}-3d-model
-          path: ${{ matrix.dir }}/output/3d-model
+          path: hardware-3d-artifacts/${{ matrix.slug }}
           if-no-files-found: warn
 
   build-pages-site:
