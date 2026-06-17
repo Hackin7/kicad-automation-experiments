@@ -233,6 +233,7 @@ jobs:
           sudo apt-get install -y kicad imagemagick librsvg2-bin
 
       - name: Generate schematic and PCB visual diffs
+        id: generate-visual-diff
         shell: bash
         env:
           DIFF_BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || github.event.inputs.diff_base_ref || 'main' }}
@@ -254,13 +255,6 @@ jobs:
           base_tree="visual-diff-work/base"
           mkdir -p "$out_root" "$work_root"
 
-          {
-            echo "## Visual diff: $project_name"
-            echo
-            echo "Baseline ref: \`$base_ref\`"
-            echo
-          } >> "$GITHUB_STEP_SUMMARY"
-
           git fetch origin "$base_ref" --depth=1
           rm -rf "$base_tree"
           git worktree add --detach "$base_tree" "origin/$base_ref"
@@ -277,10 +271,11 @@ jobs:
 
           The project \`$project_name\` does not exist at baseline ref \`$base_ref\`, or its schematic/PCB file names differ.
           EOF
-            {
-              echo "_No visual diff was generated because this project was not found in the baseline._"
-              echo
-            } >> "$GITHUB_STEP_SUMMARY"
+            cat > "$out_root/SUMMARY.md" <<EOF
+          Baseline ref: \`$base_ref\`
+
+          No visual diff was generated because this project was not found in the baseline.
+          EOF
             exit 0
           fi
 
@@ -394,41 +389,59 @@ jobs:
 
           {
             if [ "$generated" -eq 0 ]; then
-              echo "_No matching schematic or PCB SVGs were available to diff._"
+              echo "Baseline ref: \`$base_ref\`"
+              echo
+              echo "No matching schematic or PCB SVGs were available to diff."
             else
-              inline_count=0
-              inline_max=4
-              inline_byte_limit=180000
+              echo "Baseline ref: \`$base_ref\`"
+              echo
               echo "Generated $generated visual diff SVG file(s)."
               echo
-              echo "Download all visual diff files from the \`$project_slug-visual-diff\` artifact."
+              echo "## Diff Files"
               echo
               for diff_svg in "$out_root"/diff/**/*.svg; do
                 rel="${diff_svg#$out_root/diff/}"
                 size_bytes="$(wc -c < "$diff_svg" | tr -d ' ')"
-                echo "### $rel"
-                echo
-                echo "Artifact path: \`$rel\`"
-                echo
-                if [ "$inline_count" -lt "$inline_max" ] && [ "$size_bytes" -le "$inline_byte_limit" ]; then
-                  svg_b64="$(base64 -w0 "$diff_svg")"
-                  echo "<img alt=\"$project_name $rel visual diff\" src=\"data:image/svg+xml;base64,$svg_b64\" width=\"900\">"
-                  inline_count=$((inline_count + 1))
-                else
-                  echo "_Preview omitted from the summary to keep large-board runs stable; download the artifact to view this SVG._"
-                fi
-                echo
+                printf -- '- `%s` (%s bytes)\n' "$rel" "$size_bytes"
               done
             fi
-          } >> "$GITHUB_STEP_SUMMARY"
+          } > "$out_root/SUMMARY.md"
 
       - name: Upload visual diff artifact
+        id: upload-visual-diff
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.slug }}-visual-diff
           path: visual-diff-output/${{ matrix.slug }}
           if-no-files-found: warn
+
+      - name: Add visual diff links to summary
+        if: ${{ always() }}
+        shell: bash
+        env:
+          ARTIFACT_URL: ${{ steps.upload-visual-diff.outputs.artifact-url }}
+        run: |
+          set -euo pipefail
+          project_name='${{ matrix.name }}'
+          project_slug='${{ matrix.slug }}'
+          out_root="visual-diff-output/$project_slug"
+
+          {
+            echo "## Visual diff: $project_name"
+            echo
+            if [ -n "${ARTIFACT_URL:-}" ]; then
+              echo "[Download \`$project_slug-visual-diff\` artifact](${ARTIFACT_URL})"
+            else
+              echo "Visual diff artifact link is unavailable. Open the run's Artifacts section and download \`$project_slug-visual-diff\`."
+            fi
+            echo
+            if [ -f "$out_root/SUMMARY.md" ]; then
+              cat "$out_root/SUMMARY.md"
+            else
+              echo "No visual diff summary file was generated."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
   build-pages-site:
     name: Build GitHub Pages site
