@@ -1,0 +1,49 @@
+G04 #@! TF.GenerationSoftware,KiCad,Pcbnew,9.0.7+1*
+G04 #@! TF.CreationDate,2026-06-17T21:44:48+00:00*
+G04 #@! TF.ProjectId,sao_coincell_adaptor,73616f5f-636f-4696-9e63-656c6c5f6164,rev?*
+G04 #@! TF.SameCoordinates,Original*
+G04 #@! TF.FileFunction,Copper,L2,Bot*
+G04 #@! TF.FilePolarity,Positive*
+%FSLAX46Y46*%
+G04 Gerber Fmt 4.6, Leading zero omitted, Abs format (unit mm)*
+G04 Created by KiCad (PCBNEW 9.0.7+1) date 2026-06-17 21:44:48*
+%MOMM*%
+%LPD*%
+G01*
+G04 APERTURE LIST*
+G04 #@! TA.AperFunction,ComponentPad*
+%ADD10R,1.700000X1.700000*%
+G04 #@! TD*
+G04 #@! TA.AperFunction,ComponentPad*
+%ADD11O,1.700000X1.700000*%
+G04 #@! TD*
+G04 #@! TA.AperFunction,ComponentPad*
+%ADD12C,3.600000*%
+G04 #@! TD*
+G04 #@! TA.AperFunction,ConnectorPad*
+%ADD13C,5.600000*%
+G04 #@! TD*
+G04 #@! TA.AperFunction,ComponentPad*
+%ADD14R,2.000000X2.000000*%
+G04 #@! TD*
+G04 #@! TA.AperFunction,ComponentPad*
+%ADD15C,2.000000*%
+G04 #@! TD*
+G04 APERTURE END LIST*
+D10*
+X160276172Y-87850337D03*
+D11*
+X160276172Y-90390337D03*
+X162816172Y-87850337D03*
+X162816172Y-90390337D03*
+X165356172Y-87850337D03*
+X165356172Y-90390337D03*
+D12*
+X148997972Y-61571649D03*
+D13*
+X148997972Y-61571649D03*
+D14*
+X174661530Y-72683197D03*
+D15*
+X153861530Y-72683197D03*
+M02*
