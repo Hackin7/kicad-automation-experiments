@@ -214,7 +214,7 @@ jobs:
             fi
           done
 
-          preview_width=4800
+          preview_width=3200
           preview_count=0
           mkdir -p "$out_root/preview/pcb" "$out_root/preview/schematic"
 
@@ -223,7 +223,6 @@ jobs:
             local output_png="$2"
             mkdir -p "$(dirname "$output_png")"
             rsvg-convert -w "$preview_width" "$input_svg" -o "$output_png"
-            convert "$output_png" -strip "$output_png"
             preview_count=$((preview_count + 1))
           }
 
