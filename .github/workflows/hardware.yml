@@ -178,6 +178,9 @@ jobs:
 
       - name: Convert VRML model to GLB
         if: ${{ steps.find-vrml.outputs.path != '' }}
+        id: convert-vrml
+        continue-on-error: true
+        timeout-minutes: 6
         shell: bash
         run: |
           set -euo pipefail
@@ -191,6 +194,19 @@ jobs:
 
           test -s "$model_dir/board.glb"
           test -s "$model_dir/board-preview.png"
+
+      - name: Note skipped or failed 3D conversion
+        if: ${{ always() && steps.find-vrml.outputs.path != '' && steps.convert-vrml.outcome != 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          model_dir="hardware-3d-artifacts/${{ matrix.slug }}/model"
+          mkdir -p "$model_dir"
+          {
+            echo "3D model conversion did not complete for ${{ matrix.name }}."
+            echo "Conversion step outcome: ${{ steps.convert-vrml.outcome }}"
+            echo "The original VRML export is included when available."
+          } > "$model_dir/README.txt"
 
       - name: Upload 3D model outputs
         if: ${{ always() }}
