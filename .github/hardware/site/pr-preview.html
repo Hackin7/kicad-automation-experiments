@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hardware PR Preview</title>
+    <link rel="stylesheet" href="../style.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">KiCad PR review</p>
+        <h1>Hardware PR Preview</h1>
+      </div>
+      <nav aria-label="Preview navigation">
+        <a href="../">Boards</a>
+        <a id="run-link" href="#">Actions run</a>
+        <a id="pr-link" href="#">Pull request</a>
+      </nav>
+    </header>
+
+    <main class="preview-main">
+      <section class="status-band preview-status" aria-label="Preview status">
+        <div>
+          <span class="label">PR</span>
+          <code id="pr-number">unknown</code>
+        </div>
+        <div>
+          <span class="label">Run</span>
+          <code id="run-number">unknown</code>
+        </div>
+        <div>
+          <span class="label">Base</span>
+          <code id="base-sha">unknown</code>
+        </div>
+        <div>
+          <span class="label">Head</span>
+          <code id="head-sha">unknown</code>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <h2>Boards</h2>
+          <p>Select a board to inspect schematic and PCB visual diffs from this pull request run.</p>
+        </div>
+        <div id="board-tabs" class="tab-row"></div>
+      </section>
+
+      <section id="preview-content" class="section">
+        <div class="empty-state">
+          <h2>Loading preview</h2>
+          <p>Waiting for PR preview metadata.</p>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const pr = params.get('pr');
+      const run = params.get('run');
+      const repo = params.get('repo') || 'Hackin7/kicad-automation-experiments';
+      const branch = params.get('branch') || 'pr-diff-previews';
+      const previewRoot = params.get('root') || (pr && run ? `pr-${pr}/run-${run}` : '');
+      const rawBase = `https://raw.githubusercontent.com/${repo}/${branch}/${previewRoot}`;
+
+      const setText = (id, value) => {
+        const node = document.getElementById(id);
+        if (node) node.textContent = value || 'unknown';
+      };
+      const setHref = (id, value) => {
+        const node = document.getElementById(id);
+        if (node && value) node.href = value;
+      };
+
+      setText('pr-number', pr ? `#${pr}` : 'unknown');
+      setText('run-number', run || 'unknown');
+
+      if (pr) setHref('pr-link', `https://github.com/${repo}/pull/${pr}`);
+      if (run) setHref('run-link', `https://github.com/${repo}/actions/runs/${run}`);
+
+      const content = document.getElementById('preview-content');
+      const tabs = document.getElementById('board-tabs');
+
+      const escapeHtml = (value) => String(value || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+
+      const imageBlock = (title, src, href) => `
+        <article class="preview-panel">
+          <div class="card-head">
+            <h3>${escapeHtml(title)}</h3>
+            <a href="${href || src}">Open</a>
+          </div>
+          <a class="diff-image-link" href="${href || src}">
+            <img class="diff-image" src="${src}" alt="${escapeHtml(title)}">
+          </a>
+        </article>
+      `;
+
+      const artifactLinks = (board) => {
+        const links = [];
+        if (board.artifactUrl) links.push(`<a href="${board.artifactUrl}">Download artifact</a>`);
+        if (board.summaryUrl) links.push(`<a href="${board.summaryUrl}">Summary</a>`);
+        return links.length ? `<div class="pdf-links">${links.join('')}</div>` : '';
+      };
+
+      const renderBoard = (manifest, board) => {
+        const pcb = board.previews?.pcb || [];
+        const schematic = board.previews?.schematic || [];
+        const sections = [];
+
+        if (pcb.length) {
+          sections.push(`
+            <section class="section">
+              <div class="section-heading">
+                <h2>PCB Diff</h2>
+                <p>Combined and per-layer visual differences.</p>
+              </div>
+              <div class="preview-grid">
+                ${pcb.map((item) => imageBlock(item.label, `${rawBase}/${item.png}`, `${rawBase}/${item.svg || item.png}`)).join('')}
+              </div>
+            </section>
+          `);
+        }
+
+        if (schematic.length) {
+          sections.push(`
+            <section class="section">
+              <div class="section-heading">
+                <h2>Schematic Diff</h2>
+                <p>Rendered schematic differences.</p>
+              </div>
+              <div class="preview-grid">
+                ${schematic.map((item) => imageBlock(item.label, `${rawBase}/${item.png}`, `${rawBase}/${item.svg || item.png}`)).join('')}
+              </div>
+            </section>
+          `);
+        }
+
+        content.innerHTML = `
+          <section class="section">
+            <div class="section-heading">
+              <h2>${escapeHtml(board.name)}</h2>
+              <p>${escapeHtml(board.slug)}</p>
+            </div>
+            ${artifactLinks(board)}
+          </section>
+          ${sections.join('') || '<div class="empty-state"><h2>No previews found</h2><p>This board did not publish preview images for the selected run.</p></div>'}
+        `;
+      };
+
+      const renderTabs = (manifest) => {
+        tabs.innerHTML = '';
+        manifest.boards.forEach((board, index) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = `tab-button${index === 0 ? ' is-active' : ''}`;
+          button.textContent = board.name;
+          button.addEventListener('click', () => {
+            tabs.querySelectorAll('.tab-button').forEach((node) => node.classList.remove('is-active'));
+            button.classList.add('is-active');
+            renderBoard(manifest, board);
+          });
+          tabs.appendChild(button);
+        });
+      };
+
+      const fail = (message) => {
+        content.innerHTML = `
+          <div class="empty-state">
+            <h2>Preview unavailable</h2>
+            <p>${escapeHtml(message)}</p>
+          </div>
+        `;
+      };
+
+      if (!previewRoot) {
+        fail('Missing pr and run query parameters.');
+      } else {
+        fetch(`${rawBase}/manifest.json`, { cache: 'no-store' })
+          .then((response) => {
+            if (!response.ok) throw new Error(`manifest fetch failed with ${response.status}`);
+            return response.json();
+          })
+          .then((manifest) => {
+            setText('base-sha', manifest.baseSha ? manifest.baseSha.slice(0, 12) : 'unknown');
+            setText('head-sha', manifest.headSha ? manifest.headSha.slice(0, 12) : 'unknown');
+            if (!manifest.boards || !manifest.boards.length) {
+              fail('The preview manifest did not list any boards.');
+              return;
+            }
+            renderTabs(manifest);
+            renderBoard(manifest, manifest.boards[0]);
+          })
+          .catch((error) => fail(`Could not load preview data from ${rawBase}/manifest.json (${error.message}).`));
+      }
+    </script>
+  </body>
+</html>

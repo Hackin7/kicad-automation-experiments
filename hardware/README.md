@@ -1,5 +1,5 @@
 # Hardware
 
-This directory contains KiCad hardware projects listed in `projects.json`.
+This directory contains KiCad hardware project source files.
 
-The GitHub Actions hardware workflow runs ERC/DRC, generated outputs, 3D export, and review-site generation for each listed project.
+The hardware CI project registry lives at `.github/hardware/projects.json`.

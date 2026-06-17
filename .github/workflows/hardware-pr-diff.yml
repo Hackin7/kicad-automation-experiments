@@ -5,6 +5,8 @@ on:
     types: [opened, reopened, synchronize]
     paths:
       - "hardware/**"
+      - ".github/hardware/projects.json"
+      - ".github/hardware/site/**"
       - ".github/workflows/hardware-pr-diff.yml"
 
 permissions:
@@ -23,15 +25,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Load hardware projects
         id: projects
         shell: bash
         run: |
           set -euo pipefail
-          projects="$(jq -c '.' hardware/projects.json)"
-          matrix="$(jq -c '{include: .}' hardware/projects.json)"
+          projects="$(jq -c '.' .github/hardware/projects.json)"
+          matrix="$(jq -c '{include: .}' .github/hardware/projects.json)"
           echo "projects=${projects}" >> "$GITHUB_OUTPUT"
           echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
 
@@ -46,7 +48,7 @@ jobs:
 
     steps:
       - name: Checkout pull request head
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
@@ -278,7 +280,7 @@ jobs:
           fi
 
       - name: Upload visual diff artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.slug }}-pr-visual-diff
           path: visual-diff-output/${{ matrix.slug }}
@@ -295,12 +297,13 @@ jobs:
       contents: write
     outputs:
       raw_base: ${{ steps.publish.outputs.raw_base }}
+      preview_url: ${{ steps.publish.outputs.preview_url }}
       preview_branch: ${{ steps.publish.outputs.preview_branch }}
       preview_root: ${{ steps.publish.outputs.preview_root }}
 
     steps:
       - name: Download visual diff artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: "*-pr-visual-diff"
           path: artifacts
@@ -311,13 +314,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          PROJECTS_JSON: ${{ needs.project-matrix.outputs.projects }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
 
           preview_branch="pr-diff-previews"
           preview_root="pr-${PR_NUMBER}/run-${GITHUB_RUN_ID}"
           raw_base="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${preview_branch}/${preview_root}"
+          repo_name="${GITHUB_REPOSITORY#*/}"
+          preview_url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${repo_name}/preview/?pr=${PR_NUMBER}&run=${GITHUB_RUN_ID}&repo=${GITHUB_REPOSITORY}&branch=${preview_branch}&root=${preview_root}"
           echo "raw_base=${raw_base}" >> "$GITHUB_OUTPUT"
+          echo "preview_url=${preview_url}" >> "$GITHUB_OUTPUT"
           echo "preview_branch=${preview_branch}" >> "$GITHUB_OUTPUT"
           echo "preview_root=${preview_root}" >> "$GITHUB_OUTPUT"
 
@@ -341,14 +350,13 @@ jobs:
             [ -d "$artifact_dir" ] || continue
             artifact_name="$(basename "$artifact_dir")"
             slug="${artifact_name%-pr-visual-diff}"
-            if [ -f "$artifact_dir/preview/pcb/All_Layers.png" ]; then
-              mkdir -p "$preview_root/$slug/pcb"
-              cp "$artifact_dir/preview/pcb/All_Layers.png" "$preview_root/$slug/pcb/All_Layers.png"
+            mkdir -p "$preview_root/$slug"
+            if [ -d "$artifact_dir/preview" ]; then
+              cp -a "$artifact_dir/preview" "$preview_root/$slug/"
               copied=$((copied + 1))
             fi
-            if [ -d "$artifact_dir/preview/schematic" ]; then
-              mkdir -p "$preview_root/$slug/schematic"
-              find "$artifact_dir/preview/schematic" -maxdepth 1 -type f -name '*.png' -exec cp {} "$preview_root/$slug/schematic/" \;
+            if [ -d "$artifact_dir/diff" ]; then
+              cp -a "$artifact_dir/diff" "$preview_root/$slug/"
               copied=$((copied + 1))
             fi
           done
@@ -357,6 +365,65 @@ jobs:
             echo "No PNG previews were found to publish."
             exit 0
           fi
+
+          export PROJECTS_JSON PREVIEW_ROOT="$preview_root" BASE_SHA HEAD_SHA PR_NUMBER GITHUB_RUN_ID GITHUB_REPOSITORY
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          projects = json.loads(os.environ["PROJECTS_JSON"])
+          preview_root = Path(os.environ["PREVIEW_ROOT"])
+          boards = []
+
+          def item(label, path, svg_path=None):
+              data = {
+                  "label": label,
+                  "png": path.as_posix(),
+              }
+              if svg_path:
+                  data["svg"] = svg_path.as_posix()
+              return data
+
+          for project in projects:
+              slug = project["slug"]
+              board_root = preview_root / slug
+              pcb_items = []
+              schematic_items = []
+
+              pcb_preview_root = board_root / "preview" / "pcb"
+              if pcb_preview_root.exists():
+                  for png in sorted(pcb_preview_root.glob("*.png")):
+                      rel_png = png.relative_to(preview_root)
+                      rel_svg = board_root / "diff" / "pcb" / f"{png.stem}.svg"
+                      pcb_items.append(item(png.stem.replace("_", " "), rel_png, rel_svg.relative_to(preview_root) if rel_svg.exists() else None))
+
+              schematic_preview_root = board_root / "preview" / "schematic"
+              if schematic_preview_root.exists():
+                  for png in sorted(schematic_preview_root.glob("*.png")):
+                      rel_png = png.relative_to(preview_root)
+                      rel_svg = board_root / "diff" / "schematic" / f"{png.stem}.svg"
+                      schematic_items.append(item(png.stem, rel_png, rel_svg.relative_to(preview_root) if rel_svg.exists() else None))
+
+              boards.append({
+                  "name": project["name"],
+                  "slug": slug,
+                  "previews": {
+                      "pcb": pcb_items,
+                      "schematic": schematic_items,
+                  },
+              })
+
+          manifest = {
+              "repo": os.environ["GITHUB_REPOSITORY"],
+              "pr": int(os.environ["PR_NUMBER"]),
+              "runId": os.environ["GITHUB_RUN_ID"],
+              "baseSha": os.environ["BASE_SHA"],
+              "headSha": os.environ["HEAD_SHA"],
+              "boards": boards,
+          }
+          (preview_root / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+          PY
 
           git add "$preview_root"
           if git diff --cached --quiet; then
@@ -386,6 +453,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           RAW_PREVIEW_BASE: ${{ needs.publish-previews.outputs.raw_base }}
+          PREVIEW_URL: ${{ needs.publish-previews.outputs.preview_url }}
           PREVIEW_BRANCH: ${{ needs.publish-previews.outputs.preview_branch }}
           PREVIEW_ROOT: ${{ needs.publish-previews.outputs.preview_root }}
         run: |
@@ -402,6 +470,10 @@ jobs:
             echo
             echo "Compared base \`${BASE_SHA:0:12}\` to head \`${HEAD_SHA:0:12}\`."
             echo
+            if [ -n "${PREVIEW_URL:-}" ]; then
+              echo "[Open hardware PR preview page](${PREVIEW_URL})"
+              echo
+            fi
             if [ -n "${RAW_PREVIEW_BASE:-}" ]; then
               echo "PNG previews are embedded below. Full SVGs and source exports are in the artifacts."
             else
@@ -431,16 +503,16 @@ jobs:
                 echo
                 echo "### $name"
                 echo
-                echo "![${name} combined PCB diff](${RAW_PREVIEW_BASE}/${slug}/pcb/All_Layers.png)"
+                echo "![${name} combined PCB diff](${RAW_PREVIEW_BASE}/${slug}/preview/pcb/All_Layers.png)"
                 echo
-                schematic_api_path="repos/${GITHUB_REPOSITORY}/contents/${PREVIEW_ROOT}/${slug}/schematic?ref=${PREVIEW_BRANCH}"
+                schematic_api_path="repos/${GITHUB_REPOSITORY}/contents/${PREVIEW_ROOT}/${slug}/preview/schematic?ref=${PREVIEW_BRANCH}"
                 schematic_names="$(gh api "$schematic_api_path" --jq '.[]? | select(.type == "file" and (.name | endswith(".png"))) | .name' 2>/dev/null || true)"
                 if [ -n "$schematic_names" ]; then
                   echo "$schematic_names" | while read -r schematic_name; do
                     [ -n "$schematic_name" ] || continue
                     encoded_schematic_name="$(printf '%s' "$schematic_name" | jq -sRr @uri)"
                     schematic_label="${schematic_name%.png}"
-                    echo "![${name} schematic diff: ${schematic_label}](${RAW_PREVIEW_BASE}/${slug}/schematic/${encoded_schematic_name})"
+                    echo "![${name} schematic diff: ${schematic_label}](${RAW_PREVIEW_BASE}/${slug}/preview/schematic/${encoded_schematic_name})"
                     echo
                   done
                 else
