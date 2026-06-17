@@ -148,6 +148,22 @@
         `;
       };
 
+      const normalizeDiffItems = (board) => {
+        if (Array.isArray(board.diff) && board.diff.length) return board.diff;
+
+        const schematicItems = (board.previews?.schematic || []).map((item) => ({
+          label: `Schematic ${item.label || ''}`.trim(),
+          png: item.png,
+          svg: item.svg,
+        }));
+        const pcbItems = (board.previews?.pcb || []).map((item) => ({
+          label: item.label === 'All Layers' ? 'Combined PCB' : `PCB ${item.label || ''}`.trim(),
+          png: item.png,
+          svg: item.svg,
+        }));
+        return [...schematicItems, ...pcbItems];
+      };
+
       const bindDiffTabs = (diffItems) => {
         const items = (diffItems || []).filter((item) => item && item.png);
         const tabs = document.getElementById('diff-tabs');
@@ -203,6 +219,7 @@
         const boardSource = board.kicad?.board ? assetUrl(board.kicad.board) : '';
         const erc = board.reports?.erc ? assetUrl(board.reports.erc) : '';
         const drc = board.reports?.drc ? assetUrl(board.reports.drc) : '';
+        const diffItems = normalizeDiffItems(board);
 
         content.innerHTML = `
           <section id="kicanvas" class="section">
@@ -219,7 +236,7 @@
             </div>
           </section>
 
-          ${renderDiffSection(board.diff)}
+          ${renderDiffSection(diffItems)}
 
           <section id="model" class="section">
             <div class="section-heading">
@@ -268,7 +285,7 @@
             ${makeLinkList(board.pdfs, 'No PDF plots were published for this board.')}
           </section>
         `;
-        bindDiffTabs(board.diff);
+        bindDiffTabs(diffItems);
       };
 
       const renderTabs = (manifest) => {
