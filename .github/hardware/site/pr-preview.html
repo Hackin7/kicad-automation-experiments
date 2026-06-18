@@ -72,6 +72,7 @@
       const branch = params.get('branch') || 'pr-diff-previews';
       const previewRoot = params.get('root') || (pr && run ? `pr-${pr}/run-${run}` : '');
       const rawBase = `https://raw.githubusercontent.com/${repo}/${branch}/${previewRoot}`;
+      const previewAssetBase = `https://cdn.jsdelivr.net/gh/${repo}@${branch}/${previewRoot}`;
 
       const setText = (id, value) => {
         const node = document.getElementById(id);
@@ -86,7 +87,7 @@
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;');
-      const assetUrl = (path) => `${rawBase}/${path}`;
+      const assetUrl = (path) => `${previewAssetBase}/${path}`;
 
       setText('pr-number', pr ? `#${pr}` : 'unknown');
       setText('run-number', run || 'unknown');
