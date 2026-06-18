@@ -401,7 +401,14 @@ jobs:
             } > "$model_dir/README.txt"
           else
             echo "Selected VRML model: $vrml_path"
-            cp "$vrml_path" "$model_dir/board.wrl"
+            cp "$vrml_path" "$model_dir/board-source.wrl"
+            if [ -d "$(dirname "$vrml_path")/shapes3D" ]; then
+              cp -a "$(dirname "$vrml_path")/shapes3D" "$model_dir/shapes3D"
+            fi
+            if ! python3 .github/hardware/3d/bundle_vrml.py "$vrml_path" "$model_dir/board.wrl" --copy-shapes "$model_dir/shapes3D"; then
+              echo "VRML bundling failed for ${{ matrix.name }}; publishing source VRML with shapes3D fallback."
+              cp "$model_dir/board-source.wrl" "$model_dir/board.wrl"
+            fi
           fi
 
       - name: Upload PR 3D model outputs
