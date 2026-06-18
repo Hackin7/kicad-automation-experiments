@@ -190,6 +190,30 @@
         });
       };
 
+      const renderReportFrame = (title, url) => {
+        if (!url) {
+          return `<div class="empty-state"><p>No ${escapeHtml(title)} report was published for this board.</p></div>`;
+        }
+        return `<iframe title="${escapeHtml(title)} report" data-report-src="${url}" srcdoc="<p>Loading ${escapeHtml(title)} report...</p>"></iframe>`;
+      };
+
+      const hydrateReportFrames = () => {
+        document.querySelectorAll('iframe[data-report-src]').forEach((frame) => {
+          const url = frame.dataset.reportSrc;
+          fetch(url, { cache: 'no-store' })
+            .then((response) => {
+              if (!response.ok) throw new Error(`report fetch failed with ${response.status}`);
+              return response.text();
+            })
+            .then((html) => {
+              frame.srcdoc = html;
+            })
+            .catch((error) => {
+              frame.srcdoc = `<p>Unable to load report preview.</p><p><a href="${url}">Open the full report</a></p><pre>${escapeHtml(error.message)}</pre>`;
+            });
+        });
+      };
+
       const renderModel = (board) => {
         if (board.model?.glb) {
           return `
@@ -294,14 +318,14 @@
                   <h3>ERC</h3>
                   ${erc ? `<a href="${erc}">Open full report</a>` : '<span>Unavailable</span>'}
                 </div>
-                ${erc ? `<iframe title="ERC report" src="${erc}"></iframe>` : '<div class="empty-state"><p>No ERC report was published for this board.</p></div>'}
+                ${renderReportFrame('ERC', erc)}
               </article>
               <article>
                 <div class="card-head">
                   <h3>DRC</h3>
                   ${drc ? `<a href="${drc}">Open full report</a>` : '<span>Unavailable</span>'}
                 </div>
-                ${drc ? `<iframe title="DRC report" src="${drc}"></iframe>` : '<div class="empty-state"><p>No DRC report was published for this board.</p></div>'}
+                ${renderReportFrame('DRC', drc)}
               </article>
             </div>
           </section>
@@ -323,6 +347,7 @@
           </section>
         `;
         bindDiffTabs(diffItems);
+        hydrateReportFrames();
       };
 
       const renderTabs = (manifest) => {
