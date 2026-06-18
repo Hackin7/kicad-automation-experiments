@@ -21,7 +21,83 @@
             "png": "sao-coincell-adapter/schematic/sao_coincell_adaptor.png"
           }
         ]
-      }
+      },
+      "reports": {
+        "erc": "sao-coincell-adapter/reports/sao_coincell_adaptor-erc.html",
+        "drc": "sao-coincell-adapter/reports/sao_coincell_adaptor-drc.html"
+      },
+      "model": {
+        "glb": "sao-coincell-adapter/model/board.glb",
+        "poster": "sao-coincell-adapter/model/board-preview.png"
+      },
+      "downloads": [
+        {
+          "label": "Generic BOM CSV",
+          "href": "sao-coincell-adapter/outputs/bom/sao_coincell_adaptor-generic-bom.csv"
+        },
+        {
+          "label": "Generic fabrication ZIP",
+          "href": "sao-coincell-adapter/outputs/fab/sao_coincell_adaptor-generic-fab.zip"
+        },
+        {
+          "label": "JLCPCB Gerbers ZIP",
+          "href": "sao-coincell-adapter/outputs/jlcpcb/sao_coincell_adaptor-jlcpcb-gerbers.zip"
+        },
+        {
+          "label": "JLCPCB BOM CSV",
+          "href": "sao-coincell-adapter/outputs/jlcpcb/sao_coincell_adaptor-jlcpcb-bom.csv"
+        },
+        {
+          "label": "JLCPCB CPL CSV",
+          "href": "sao-coincell-adapter/outputs/jlcpcb/sao_coincell_adaptor-jlcpcb-cpl.csv"
+        },
+        {
+          "label": "Interactive BOM",
+          "href": "sao-coincell-adapter/outputs/ibom/sao_coincell_adaptor-ibom.html"
+        }
+      ],
+      "pdfs": [
+        {
+          "label": "Schematic",
+          "href": "sao-coincell-adapter/outputs/pdf/sao_coincell_adaptor-schematic.pdf"
+        },
+        {
+          "label": "Front copper",
+          "href": "sao-coincell-adapter/outputs/pdf/sao_coincell_adaptor-pcb-front-copper.pdf"
+        },
+        {
+          "label": "Back copper",
+          "href": "sao-coincell-adapter/outputs/pdf/sao_coincell_adaptor-pcb-back-copper.pdf"
+        },
+        {
+          "label": "Front silkscreen",
+          "href": "sao-coincell-adapter/outputs/pdf/sao_coincell_adaptor-pcb-front-silkscreen.pdf"
+        },
+        {
+          "label": "Back silkscreen",
+          "href": "sao-coincell-adapter/outputs/pdf/sao_coincell_adaptor-pcb-back-silkscreen.pdf"
+        },
+        {
+          "label": "Front mask",
+          "href": "sao-coincell-adapter/outputs/pdf/sao_coincell_adaptor-pcb-front-mask.pdf"
+        },
+        {
+          "label": "Back mask",
+          "href": "sao-coincell-adapter/outputs/pdf/sao_coincell_adaptor-pcb-back-mask.pdf"
+        },
+        {
+          "label": "Front fab",
+          "href": "sao-coincell-adapter/outputs/pdf/sao_coincell_adaptor-pcb-front-fab.pdf"
+        },
+        {
+          "label": "Back fab",
+          "href": "sao-coincell-adapter/outputs/pdf/sao_coincell_adaptor-pcb-back-fab.pdf"
+        },
+        {
+          "label": "Edge cuts",
+          "href": "sao-coincell-adapter/outputs/pdf/sao_coincell_adaptor-pcb-edge-cuts.pdf"
+        }
+      ]
     },
     {
       "name": "Simple LED Board",
@@ -39,7 +115,83 @@
             "png": "simple-led-board/schematic/simple_led_board.png"
           }
         ]
-      }
+      },
+      "reports": {
+        "erc": "simple-led-board/reports/simple_led_board-erc.html",
+        "drc": "simple-led-board/reports/simple_led_board-drc.html"
+      },
+      "model": {
+        "glb": "simple-led-board/model/board.glb",
+        "poster": "simple-led-board/model/board-preview.png"
+      },
+      "downloads": [
+        {
+          "label": "Generic BOM CSV",
+          "href": "simple-led-board/outputs/bom/simple_led_board-generic-bom.csv"
+        },
+        {
+          "label": "Generic fabrication ZIP",
+          "href": "simple-led-board/outputs/fab/simple_led_board-generic-fab.zip"
+        },
+        {
+          "label": "JLCPCB Gerbers ZIP",
+          "href": "simple-led-board/outputs/jlcpcb/simple_led_board-jlcpcb-gerbers.zip"
+        },
+        {
+          "label": "JLCPCB BOM CSV",
+          "href": "simple-led-board/outputs/jlcpcb/simple_led_board-jlcpcb-bom.csv"
+        },
+        {
+          "label": "JLCPCB CPL CSV",
+          "href": "simple-led-board/outputs/jlcpcb/simple_led_board-jlcpcb-cpl.csv"
+        },
+        {
+          "label": "Interactive BOM",
+          "href": "simple-led-board/outputs/ibom/simple_led_board-ibom.html"
+        }
+      ],
+      "pdfs": [
+        {
+          "label": "Schematic",
+          "href": "simple-led-board/outputs/pdf/simple_led_board-schematic.pdf"
+        },
+        {
+          "label": "Front copper",
+          "href": "simple-led-board/outputs/pdf/simple_led_board-pcb-front-copper.pdf"
+        },
+        {
+          "label": "Back copper",
+          "href": "simple-led-board/outputs/pdf/simple_led_board-pcb-back-copper.pdf"
+        },
+        {
+          "label": "Front silkscreen",
+          "href": "simple-led-board/outputs/pdf/simple_led_board-pcb-front-silkscreen.pdf"
+        },
+        {
+          "label": "Back silkscreen",
+          "href": "simple-led-board/outputs/pdf/simple_led_board-pcb-back-silkscreen.pdf"
+        },
+        {
+          "label": "Front mask",
+          "href": "simple-led-board/outputs/pdf/simple_led_board-pcb-front-mask.pdf"
+        },
+        {
+          "label": "Back mask",
+          "href": "simple-led-board/outputs/pdf/simple_led_board-pcb-back-mask.pdf"
+        },
+        {
+          "label": "Front fab",
+          "href": "simple-led-board/outputs/pdf/simple_led_board-pcb-front-fab.pdf"
+        },
+        {
+          "label": "Back fab",
+          "href": "simple-led-board/outputs/pdf/simple_led_board-pcb-back-fab.pdf"
+        },
+        {
+          "label": "Edge cuts",
+          "href": "simple-led-board/outputs/pdf/simple_led_board-pcb-edge-cuts.pdf"
+        }
+      ]
     }
   ]
 }
