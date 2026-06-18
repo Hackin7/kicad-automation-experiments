@@ -41,11 +41,14 @@ JLCPCB BoM is working (entry using JLCPCB Plugin into PCB design)
 
 ## Future TODOs
 
-- Allow Preview of PRs on Github Pages -> board + diff ui (a better diff ui would be nice)
+- [x] Allow Preview of PRs on Github Pages -> board + diff ui (a better diff ui would be nice)
+  - [ ] Improve the diff such that it syncs up between commits
+  - [ ] iBOM cannot be displayed in the web browser on PR preview
 - Test of effectiveness on a private repo (PR actions etc.)
   - if there's a local/ web app to download Github CI results and view them for private repos
 - Improve Website UI (feels very Vibe Coded)
   - Integrate the various components more cohesively when possible
+  - Refactor the codebase to be nicer for humans
 
 
 Generated CI files are uploaded as Actions artifacts. Source KiCad files stay under `hardware/`; CI helper scripts, site templates, and registry data stay under `.github/hardware/`.
