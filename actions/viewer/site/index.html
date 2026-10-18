@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>__PROJECT_NAME__ Hardware Review</title>
+    <title>Hardware Review</title>
     <script>
       (() => {
         const saved = localStorage.getItem('theme');
@@ -22,7 +22,7 @@
           <span class="brand-mark" aria-hidden="true">K</span>
           <a class="crumb-root" href="../../">Hardware Boards</a>
           <span class="sep crumb-root">/</span>
-          <span class="current" id="breadcrumb-name">__PROJECT_NAME__</span>
+          <span class="current" id="breadcrumb-name">Board</span>
         </div>
         <nav class="site-nav" aria-label="Page sections">
           <a href="#kicanvas">KiCanvas</a>
@@ -41,7 +41,7 @@
 
     <main class="container">
       <section class="page-head">
-        <h1 id="project-name">__PROJECT_NAME__</h1>
+        <h1 id="project-name">Board</h1>
         <div class="status-pills" aria-label="Build status">
           <span class="pill" data-pill-for="checks-result">ERC / DRC <span id="checks-result">unknown</span></span>
           <span class="pill" data-pill-for="outputs-result">Outputs <span id="outputs-result">unknown</span></span>
@@ -58,9 +58,9 @@
         </div>
         <div class="viewer-shell">
           <kicanvas-embed controls="full">
-            <kicanvas-source id="kicanvas-project" src="kicad/__PROJECT_FILE__"></kicanvas-source>
-            <kicanvas-source id="kicanvas-schematic" src="kicad/__SCHEMATIC_FILE__"></kicanvas-source>
-            <kicanvas-source id="kicanvas-board" src="kicad/__BOARD_FILE__"></kicanvas-source>
+            <kicanvas-source id="kicanvas-project"></kicanvas-source>
+            <kicanvas-source id="kicanvas-schematic"></kicanvas-source>
+            <kicanvas-source id="kicanvas-board"></kicanvas-source>
           </kicanvas-embed>
         </div>
       </section>
@@ -102,16 +102,16 @@
           <article>
             <div class="card-head">
               <h3>ERC</h3>
-              <a id="erc-link" href="reports/__BASE_NAME__-erc.html">Open full report</a>
+              <a id="erc-link" href="#">Open full report</a>
             </div>
-            <iframe id="erc-frame" title="ERC report" src="reports/__BASE_NAME__-erc.html"></iframe>
+            <iframe id="erc-frame" title="ERC report"></iframe>
           </article>
           <article>
             <div class="card-head">
               <h3>DRC</h3>
-              <a id="drc-link" href="reports/__BASE_NAME__-drc.html">Open full report</a>
+              <a id="drc-link" href="#">Open full report</a>
             </div>
-            <iframe id="drc-frame" title="DRC report" src="reports/__BASE_NAME__-drc.html"></iframe>
+            <iframe id="drc-frame" title="DRC report"></iframe>
           </article>
         </div>
       </section>
@@ -121,14 +121,7 @@
           <h2>Downloads</h2>
           <p>Fabrication and assembly files from this run.</p>
         </div>
-        <div class="file-grid download-grid">
-          <a class="file" data-output-file="generic-bom" href="#"><span class="type">CSV</span>Generic BOM</a>
-          <a class="file" data-output-file="generic-fab" href="#"><span class="type">ZIP</span>Generic fabrication</a>
-          <a class="file" data-output-file="jlcpcb-gerbers" href="#"><span class="type">ZIP</span>JLCPCB Gerbers</a>
-          <a class="file" data-output-file="jlcpcb-bom" href="#"><span class="type">CSV</span>JLCPCB BOM</a>
-          <a class="file" data-output-file="jlcpcb-cpl" href="#"><span class="type">CSV</span>JLCPCB CPL</a>
-          <a class="file" data-output-file="ibom" href="#"><span class="type">HTML</span>Interactive BOM</a>
-        </div>
+        <div id="download-grid" class="file-grid"></div>
       </section>
 
       <section id="pdfs" class="section section-compact">
@@ -136,18 +129,7 @@
           <h2>PDFs</h2>
           <p>Schematic and PCB layer plots from KiBot.</p>
         </div>
-        <div class="file-grid">
-          <a class="file" id="schematic-pdf-link" href="outputs/pdf/__BASE_NAME__-schematic.pdf"><span class="type">PDF</span>Schematic</a>
-          <a class="file" data-pcb-pdf="front-copper" href="#"><span class="type">PDF</span>Front copper</a>
-          <a class="file" data-pcb-pdf="back-copper" href="#"><span class="type">PDF</span>Back copper</a>
-          <a class="file" data-pcb-pdf="front-silkscreen" href="#"><span class="type">PDF</span>Front silkscreen</a>
-          <a class="file" data-pcb-pdf="back-silkscreen" href="#"><span class="type">PDF</span>Back silkscreen</a>
-          <a class="file" data-pcb-pdf="front-mask" href="#"><span class="type">PDF</span>Front mask</a>
-          <a class="file" data-pcb-pdf="back-mask" href="#"><span class="type">PDF</span>Back mask</a>
-          <a class="file" data-pcb-pdf="front-fab" href="#"><span class="type">PDF</span>Front fab</a>
-          <a class="file" data-pcb-pdf="back-fab" href="#"><span class="type">PDF</span>Back fab</a>
-          <a class="file" data-pcb-pdf="edge-cuts" href="#"><span class="type">PDF</span>Edge cuts</a>
-        </div>
+        <div id="pdf-grid" class="file-grid"></div>
       </section>
     </main>
 
@@ -177,32 +159,41 @@
 
       const setUrl = (id, url, attr = 'href') => {
         const node = document.getElementById(id);
-        if (node) node.setAttribute(attr, url);
+        if (!node) return;
+        if (!url) {
+          node.remove();
+          return;
+        }
+        node.setAttribute(attr, url);
       };
-      setUrl('erc-link', `reports/${baseName}-erc.html`);
-      setUrl('erc-frame', `reports/${baseName}-erc.html`, 'src');
-      setUrl('drc-link', `reports/${baseName}-drc.html`);
-      setUrl('drc-frame', `reports/${baseName}-drc.html`, 'src');
-      setUrl('kicanvas-project', `kicad/${projectFile}`, 'src');
-      setUrl('kicanvas-schematic', `kicad/${schematicFile}`, 'src');
-      setUrl('kicanvas-board', `kicad/${boardFile}`, 'src');
-      setUrl('schematic-pdf-link', `outputs/pdf/${baseName}-schematic.pdf`);
+      setUrl('erc-link', info.ercReport || `reports/${baseName}-erc.html`);
+      setUrl('erc-frame', info.ercReport || `reports/${baseName}-erc.html`, 'src');
+      setUrl('drc-link', info.drcReport || `reports/${baseName}-drc.html`);
+      setUrl('drc-frame', info.drcReport || `reports/${baseName}-drc.html`, 'src');
+      setUrl('kicanvas-project', projectFile ? `kicad/${projectFile}` : '', 'src');
+      setUrl('kicanvas-schematic', schematicFile ? `kicad/${schematicFile}` : '', 'src');
+      setUrl('kicanvas-board', boardFile ? `kicad/${boardFile}` : '', 'src');
 
-      document.querySelectorAll('[data-pcb-pdf]').forEach((link) => {
-        link.href = `outputs/pdf/${baseName}-pcb-${link.dataset.pcbPdf}.pdf`;
-      });
-
-      const outputFiles = {
-        'generic-bom': `outputs/bom/${baseName}-generic-bom.csv`,
-        'generic-fab': `outputs/fab/${baseName}-generic-fab.zip`,
-        'jlcpcb-gerbers': `outputs/jlcpcb/${baseName}-jlcpcb-gerbers.zip`,
-        'jlcpcb-bom': `outputs/jlcpcb/${baseName}-jlcpcb-bom.csv`,
-        'jlcpcb-cpl': `outputs/jlcpcb/${baseName}-jlcpcb-cpl.csv`,
-        ibom: `outputs/ibom/${baseName}-ibom.html`
+      const renderFiles = (containerId, items) => {
+        const node = document.getElementById(containerId);
+        const section = node ? node.closest('section') : null;
+        if (!node || !items || !items.length) {
+          if (section) section.hidden = true;
+          return;
+        }
+        node.innerHTML = items.map((item) => {
+          const type = document.createElement('span');
+          type.className = 'type';
+          type.textContent = item.type || 'FILE';
+          const link = document.createElement('a');
+          link.className = 'file';
+          link.href = item.href || '#';
+          link.append(type, item.label || 'Download');
+          return link.outerHTML;
+        }).join('');
       };
-      document.querySelectorAll('[data-output-file]').forEach((link) => {
-        link.href = outputFiles[link.dataset.outputFile] || '#';
-      });
+      renderFiles('download-grid', info.downloads);
+      renderFiles('pdf-grid', info.pdfs);
 
       window.HardwareSite?.applyPillStates();
 

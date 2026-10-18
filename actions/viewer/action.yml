@@ -1,0 +1,64 @@
+name: Publish KiCad review site
+description: Assemble a GitHub Pages review site for the discovered KiCad projects.
+
+inputs:
+  projects:
+    description: JSON array from the discover action.
+    required: true
+  title:
+    description: Site title. Defaults to the repository name.
+    required: false
+    default: ""
+  deploy:
+    description: Deploy the site to GitHub Pages.
+    required: false
+    default: "true"
+
+outputs:
+  page_url:
+    description: Published GitHub Pages URL, when deployment ran.
+    value: ${{ steps.deployment.outputs.page_url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Configure GitHub Pages
+      if: ${{ inputs.deploy == 'true' }}
+      uses: actions/configure-pages@v6
+      with:
+        enablement: true
+
+    - name: Download KiCad build artifacts
+      uses: actions/download-artifact@v8
+      continue-on-error: true
+      with:
+        pattern: "*-kicad-build"
+        path: artifacts
+
+    - name: Assemble review site
+      shell: bash
+      env:
+        PROJECTS_JSON: ${{ inputs.projects }}
+        SITE_TITLE: ${{ inputs.title }}
+      run: |
+        python3 "${{ github.action_path }}/assemble.py" \
+          --artifacts artifacts \
+          --out site \
+          --title "$SITE_TITLE"
+
+    - name: Upload GitHub Pages artifact
+      uses: actions/upload-pages-artifact@v5
+      with:
+        path: site
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      if: ${{ inputs.deploy == 'true' }}
+      uses: actions/deploy-pages@v5
+
+    - name: Write review summary
+      if: ${{ always() }}
+      shell: bash
+      env:
+        PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+      run: python3 "${{ github.action_path }}/assemble.py" --summary --out site

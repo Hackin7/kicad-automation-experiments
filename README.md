@@ -25,15 +25,57 @@ Two hardware workflows are configured:
 
 ## Repo Layout
 
+- `actions/discover`, `actions/build`, and `actions/viewer`: reusable KiCad review actions.
+- `.github/kicad-viewer.yml`: optional project names, slugs, and production paths for this repo.
 - `.github/workflows/`: GitHub Actions workflows.
-- `.github/hardware/projects.json`: board registry used by CI.
-- `.github/hardware/site/`: GitHub Pages review-site template and styles.
-- `.github/hardware/3d/`: 3D conversion helper scripts.
+- `.github/hardware/projects.json`: board registry still used by the pull request diff workflow.
 - `.github/hardware/report_summary.py`: ERC/DRC summary formatter.
 - `hardware/`: KiCad project source files.
 - `docs/`: project notes and documentation.
 
-The board registry lives at `.github/hardware/projects.json`. Add a board under `hardware/`, then add an entry to that registry so both workflows include it.
+Boards are discovered from committed `.kicad_pro` files. `.github/kicad-viewer.yml` pins the names and slugs used by the published review site. The pull request diff workflow still reads `.github/hardware/projects.json`.
+
+## Use in another repository
+
+```yaml
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      projects: ${{ steps.discover.outputs.projects }}
+      matrix: ${{ steps.discover.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: discover
+        uses: Hackin7/kicad-automation-experiments/actions/discover@main
+  build:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: Hackin7/kicad-automation-experiments/actions/build@main
+        with:
+          project: ${{ toJson(matrix) }}
+  viewer:
+    needs: [discover, build]
+    if: ${{ always() && needs.discover.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: Hackin7/kicad-automation-experiments/actions/viewer@main
+        with:
+          projects: ${{ needs.discover.outputs.projects }}
+          deploy: ${{ github.ref == 'refs/heads/main' }}
+```
+
+The build job is optional. Without it, the viewer still publishes KiCanvas and any committed production files. An optional `.github/kicad-viewer.yml` can set `name`, `slug`, `production`, `kibot`, and `enabled` for each project path. `{dir}` and `{basename}` placeholders work in production and KiBot paths.
 
 ## Notes
 
@@ -51,4 +93,4 @@ JLCPCB BoM is working (entry using JLCPCB Plugin into PCB design)
   - Refactor the codebase to be nicer for humans
 
 
-Generated CI files are uploaded as Actions artifacts. Source KiCad files stay under `hardware/`; CI helper scripts, site templates, and registry data stay under `.github/hardware/`.
+Generated CI files are uploaded as Actions artifacts and published on the review site. Source KiCad files stay under `hardware/`. The reusable actions live under `actions/`.

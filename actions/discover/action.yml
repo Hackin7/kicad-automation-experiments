@@ -1,0 +1,50 @@
+name: Discover KiCad projects
+description: Find KiCad projects and apply an optional viewer config.
+
+inputs:
+  include:
+    description: Comma-separated globs of .kicad_pro files to include.
+    required: false
+    default: "**/*.kicad_pro"
+  exclude:
+    description: Comma-separated globs to skip.
+    required: false
+    default: "**/output/**,**/archive/**,**/templates/**"
+  config:
+    description: Optional viewer config path.
+    required: false
+    default: .github/kicad-viewer.yml
+  production:
+    description: Comma-separated production directories. {dir} and {basename} are expanded. The first directory that exists is used.
+    required: false
+    default: "{dir}/production,{dir}/fab,{dir}/outputs"
+  kibot:
+    description: KiBot config pattern. {name} is checks, outputs, or 3d.
+    required: false
+    default: "{dir}/{name}.kibot.yaml"
+
+outputs:
+  projects:
+    description: JSON array of discovered projects.
+    value: ${{ steps.discover.outputs.projects }}
+  matrix:
+    description: Matrix JSON with an include array.
+    value: ${{ steps.discover.outputs.matrix }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install PyYAML
+      shell: bash
+      run: python3 -m pip install --user pyyaml
+
+    - name: Discover KiCad projects
+      id: discover
+      shell: bash
+      run: |
+        python3 "${{ github.action_path }}/discover.py" \
+          --include "${{ inputs.include }}" \
+          --exclude "${{ inputs.exclude }}" \
+          --config "${{ inputs.config }}" \
+          --production "${{ inputs.production }}" \
+          --kibot "${{ inputs.kibot }}"

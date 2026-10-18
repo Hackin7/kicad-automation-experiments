@@ -270,7 +270,9 @@ def main() -> int:
         slug = project["slug"]
         name = project["name"]
         basename = project.get("basename", slug)
-        report_dir = artifacts_dir / f"{slug}-check-reports"
+        report_dir = artifacts_dir / f"{slug}-kicad-build" / "reports"
+        if not report_dir.exists():
+            report_dir = artifacts_dir / f"{slug}-check-reports"
 
         print(f"### {name}")
         print()

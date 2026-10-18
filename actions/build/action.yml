@@ -1,0 +1,177 @@
+name: Build KiCad project
+description: Run ERC/DRC, fabrication outputs, and a browser VRML model for one KiCad project.
+
+inputs:
+  project:
+    description: One discovered project as JSON.
+    required: true
+  fail-on-checks:
+    description: Fail the action when ERC or DRC fails.
+    required: false
+    default: "true"
+  fail-on-outputs:
+    description: Fail the action when fabrication output generation fails.
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Read project
+      id: project
+      shell: bash
+      env:
+        PROJECT_JSON: ${{ inputs.project }}
+      run: |
+        set -euo pipefail
+        slug="$(echo "$PROJECT_JSON" | jq -r '.slug')"
+        name="$(echo "$PROJECT_JSON" | jq -r '.name')"
+        dir="$(echo "$PROJECT_JSON" | jq -r '.dir // ""')"
+        schematic="$(echo "$PROJECT_JSON" | jq -r '.schematic // ""')"
+        board="$(echo "$PROJECT_JSON" | jq -r '.board // ""')"
+        checks="$(echo "$PROJECT_JSON" | jq -r '.checks_config // ""')"
+        outputs="$(echo "$PROJECT_JSON" | jq -r '.outputs_config // ""')"
+        model="$(echo "$PROJECT_JSON" | jq -r '.model_config // ""')"
+
+        if [ -z "$checks" ] || [ ! -f "$checks" ]; then
+          checks="${{ github.action_path }}/kibot/checks.kibot.yaml"
+        fi
+        if [ -z "$outputs" ] || [ ! -f "$outputs" ]; then
+          outputs="${{ github.action_path }}/kibot/outputs.kibot.yaml"
+        fi
+        if [ -z "$model" ] || [ ! -f "$model" ]; then
+          model="${{ github.action_path }}/kibot/3d.kibot.yaml"
+        fi
+
+        schematic_path="$schematic"
+        board_path="$board"
+        if [ -n "$dir" ]; then
+          [ -z "$schematic" ] || schematic_path="$dir/$schematic"
+          [ -z "$board" ] || board_path="$dir/$board"
+        fi
+
+        has_sources=false
+        if [ -n "$schematic_path" ] && [ -n "$board_path" ] && [ -f "$schematic_path" ] && [ -f "$board_path" ]; then
+          has_sources=true
+        fi
+
+        {
+          echo "slug=$slug"
+          echo "name=$name"
+          echo "checks_config=$checks"
+          echo "outputs_config=$outputs"
+          echo "model_config=$model"
+          echo "schematic_path=$schematic_path"
+          echo "board_path=$board_path"
+          echo "has_sources=$has_sources"
+        } >> "$GITHUB_ENV"
+        echo "has_sources=$has_sources" >> "$GITHUB_OUTPUT"
+
+    - name: Run KiBot ERC and DRC
+      id: checks
+      if: ${{ steps.project.outputs.has_sources == 'true' }}
+      continue-on-error: true
+      uses: INTI-CMNB/KiBot@v2_k9
+      with:
+        config: ${{ env.checks_config }}
+        schema: ${{ env.schematic_path }}
+        board: ${{ env.board_path }}
+        dir: kicad-artifact/reports
+
+    - name: Generate fabrication outputs
+      id: outputs
+      if: ${{ steps.project.outputs.has_sources == 'true' }}
+      continue-on-error: true
+      uses: INTI-CMNB/KiBot@v2_k9
+      with:
+        config: ${{ env.outputs_config }}
+        schema: ${{ env.schematic_path }}
+        board: ${{ env.board_path }}
+        dir: kicad-artifact/outputs
+
+    - name: Export VRML model
+      id: model
+      if: ${{ steps.project.outputs.has_sources == 'true' }}
+      continue-on-error: true
+      uses: INTI-CMNB/KiBot@v2_k9
+      with:
+        config: ${{ env.model_config }}
+        schema: ${{ env.schematic_path }}
+        board: ${{ env.board_path }}
+        dir: kicad-3d-source
+
+    - name: Bundle VRML model and write status
+      if: ${{ always() }}
+      shell: bash
+      env:
+        CHECKS_OUTCOME: ${{ steps.checks.outcome }}
+        OUTPUTS_OUTCOME: ${{ steps.outputs.outcome }}
+        MODEL_OUTCOME: ${{ steps.model.outcome }}
+        HAS_SOURCES: ${{ steps.project.outputs.has_sources }}
+      run: |
+        set -euo pipefail
+        mkdir -p kicad-artifact/reports kicad-artifact/outputs kicad-artifact/model
+
+        result() {
+          if [ "${HAS_SOURCES}" != "true" ]; then
+            printf skipped
+          elif [ "$1" = "success" ]; then
+            printf success
+          elif [ "$1" = "failure" ]; then
+            printf failure
+          else
+            printf skipped
+          fi
+        }
+
+        vrml_path="$(find kicad-3d-source \( -iname '*.wrl' -o -iname '*.vrml' \) ! -path '*/shapes3D/*' -print 2>/dev/null | sort | head -n 1 || true)"
+        models_result="$(result "$MODEL_OUTCOME")"
+        if [ -n "$vrml_path" ]; then
+          cp "$vrml_path" kicad-artifact/model/board-source.wrl
+          if [ -d "$(dirname "$vrml_path")/shapes3D" ]; then
+            cp -a "$(dirname "$vrml_path")/shapes3D" kicad-artifact/model/shapes3D
+          fi
+          if ! python3 "${{ github.action_path }}/bundle_vrml.py" "$vrml_path" kicad-artifact/model/board.wrl --copy-shapes kicad-artifact/model/shapes3D; then
+            echo "VRML bundling failed; publishing the source VRML."
+            cp kicad-artifact/model/board-source.wrl kicad-artifact/model/board.wrl
+          fi
+        elif [ "$models_result" = "success" ]; then
+          models_result=failure
+        fi
+
+        cat > kicad-artifact/status.json <<EOF
+        {
+          "checks": "$(result "$CHECKS_OUTCOME")",
+          "outputs": "$(result "$OUTPUTS_OUTCOME")",
+          "models": "$models_result"
+        }
+        EOF
+        echo "checks_result=$(result "$CHECKS_OUTCOME")" >> "$GITHUB_ENV"
+        echo "outputs_result=$(result "$OUTPUTS_OUTCOME")" >> "$GITHUB_ENV"
+
+    - name: Upload build artifact
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ env.slug }}-kicad-build
+        path: kicad-artifact
+        if-no-files-found: warn
+
+    - name: Fail when required steps failed
+      if: ${{ always() }}
+      shell: bash
+      env:
+        FAIL_ON_CHECKS: ${{ inputs.fail-on-checks }}
+        FAIL_ON_OUTPUTS: ${{ inputs.fail-on-outputs }}
+      run: |
+        set -euo pipefail
+        failed=0
+        if [ "$FAIL_ON_CHECKS" = "true" ] && [ "${checks_result:-failure}" = "failure" ]; then
+          echo "ERC/DRC failed for ${name}."
+          failed=1
+        fi
+        if [ "$FAIL_ON_OUTPUTS" = "true" ] && [ "${outputs_result:-failure}" = "failure" ]; then
+          echo "Fabrication output generation failed for ${name}."
+          failed=1
+        fi
+        exit "$failed"

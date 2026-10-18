@@ -1,0 +1,7 @@
+projects:
+  - path: hardware/sao_coincell_adapter
+    name: SAO Coincell Adapter
+    slug: sao-coincell-adapter
+  - path: hardware/simple_led_board
+    name: Simple LED Board
+    slug: simple-led-board
