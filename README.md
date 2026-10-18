@@ -25,7 +25,7 @@ Two hardware workflows are configured:
 
 ## Repo Layout
 
-- `actions/discover`, `actions/build`, and `actions/viewer`: reusable KiCad review actions.
+- `actions/discover`, `actions/build`, and `actions/viewer`: reusable KiCad review actions. Hardware CI calls them at `Hackin7/kicad-automation-experiments/actions/<name>@main`, the same way another repository would.
 - `.github/kicad-viewer.yml`: optional project names, slugs, and production paths for this repo.
 - `.github/workflows/`: GitHub Actions workflows.
 - `.github/hardware/projects.json`: board registry still used by the pull request diff workflow.
