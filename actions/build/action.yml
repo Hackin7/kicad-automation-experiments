@@ -67,6 +67,11 @@ runs:
         } >> "$GITHUB_ENV"
         echo "has_sources=$has_sources" >> "$GITHUB_OUTPUT"
 
+    - name: Prepare artifact directories
+      if: ${{ steps.project.outputs.has_sources == 'true' }}
+      shell: bash
+      run: mkdir -p kicad-artifact/reports kicad-artifact/outputs kicad-artifact/model kicad-3d-source
+
     - name: Run KiBot ERC and DRC
       id: checks
       if: ${{ steps.project.outputs.has_sources == 'true' }}
@@ -110,7 +115,6 @@ runs:
         HAS_SOURCES: ${{ steps.project.outputs.has_sources }}
       run: |
         set -euo pipefail
-        mkdir -p kicad-artifact/reports kicad-artifact/outputs kicad-artifact/model
 
         result() {
           if [ "${HAS_SOURCES}" != "true" ]; then
@@ -123,6 +127,17 @@ runs:
             printf skipped
           fi
         }
+
+        echo "checks_result=$(result "$CHECKS_OUTCOME")" >> "$GITHUB_ENV"
+        echo "outputs_result=$(result "$OUTPUTS_OUTCOME")" >> "$GITHUB_ENV"
+
+        # KiBot's container creates these directories as root.
+        for path in kicad-artifact kicad-3d-source; do
+          if [ -e "$path" ]; then
+            sudo chown -R "$(id -u):$(id -g)" "$path"
+          fi
+        done
+        mkdir -p kicad-artifact/reports kicad-artifact/outputs kicad-artifact/model
 
         vrml_path="$(find kicad-3d-source \( -iname '*.wrl' -o -iname '*.vrml' \) ! -path '*/shapes3D/*' -print 2>/dev/null | sort | head -n 1 || true)"
         models_result="$(result "$MODEL_OUTCOME")"
@@ -146,8 +161,6 @@ runs:
           "models": "$models_result"
         }
         EOF
-        echo "checks_result=$(result "$CHECKS_OUTCOME")" >> "$GITHUB_ENV"
-        echo "outputs_result=$(result "$OUTPUTS_OUTCOME")" >> "$GITHUB_ENV"
 
     - name: Upload build artifact
       if: ${{ always() }}
@@ -163,14 +176,28 @@ runs:
       env:
         FAIL_ON_CHECKS: ${{ inputs.fail-on-checks }}
         FAIL_ON_OUTPUTS: ${{ inputs.fail-on-outputs }}
+        CHECKS_OUTCOME: ${{ steps.checks.outcome }}
+        OUTPUTS_OUTCOME: ${{ steps.outputs.outcome }}
+        HAS_SOURCES: ${{ steps.project.outputs.has_sources }}
       run: |
         set -euo pipefail
+        classify() {
+          if [ "${HAS_SOURCES}" != "true" ]; then
+            printf skipped
+          elif [ "$1" = "success" ]; then
+            printf success
+          elif [ "$1" = "failure" ]; then
+            printf failure
+          else
+            printf skipped
+          fi
+        }
         failed=0
-        if [ "$FAIL_ON_CHECKS" = "true" ] && [ "${checks_result:-failure}" = "failure" ]; then
+        if [ "$FAIL_ON_CHECKS" = "true" ] && [ "$(classify "$CHECKS_OUTCOME")" = "failure" ]; then
           echo "ERC/DRC failed for ${name}."
           failed=1
         fi
-        if [ "$FAIL_ON_OUTPUTS" = "true" ] && [ "${outputs_result:-failure}" = "failure" ]; then
+        if [ "$FAIL_ON_OUTPUTS" = "true" ] && [ "$(classify "$OUTPUTS_OUTCOME")" = "failure" ]; then
           echo "Fabrication output generation failed for ${name}."
           failed=1
         fi
